@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0806">
+  <meta name="description" content="Embers — a small, cozy idle game. Keep the fire burning. Discover what remains.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Embers">
+  <title>Embers</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" href="assets/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="assets/icons/icon-180.png">
+  <link rel="preload" href="assets/fonts/pixelify-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app" class="loading">
+    <header class="topbar">
+      <h1 class="logo"><span class="logo-flame" aria-hidden="true"></span>EMBERS</h1>
+      <div class="wallet">
+        <span class="coin sparks" title="Sparks"><b>✦</b><span id="w-sparks">0</span></span>
+        <span class="coin cores" title="Ember Cores"><b>◆</b><span id="w-cores">0</span></span>
+      </div>
+      <button id="btn-settings" class="icon-btn" aria-label="Settings &amp; help">☰</button>
+    </header>
+
+    <main id="views">
+      <section id="view-fire" class="view active" aria-label="Campfire">
+        <div class="scene-wrap">
+          <canvas id="scene" aria-label="The campfire"></canvas>
+          <div class="hud">
+            <div class="hud-label" id="hud-label">Remaining</div>
+            <div class="hud-time" id="hud-time">--:--</div>
+            <div class="hud-sub" id="hud-sub"></div>
+          </div>
+        </div>
+        <div class="fire-stats" id="fire-stats">
+          <div class="stat"><span>Alive</span><b id="st-duration">0m</b></div>
+          <div class="stat heat"><span>Heat</span><b id="st-heat">0</b></div>
+          <div class="stat quality"><span>Quality</span><b id="st-quality">0</b></div>
+          <div class="stat essence"><span>Essence</span><b id="st-essence">0</b></div>
+        </div>
+        <div id="fire-panel" class="panel"></div>
+      </section>
+
+      <section id="view-materials" class="view" aria-label="Materials">
+        <div class="subtabs" role="tablist">
+          <button class="subtab active" data-sub="fuel">Fuel</button>
+          <button class="subtab" data-sub="shop">Shop</button>
+          <button class="subtab" data-sub="satchel">Satchel</button>
+        </div>
+        <div id="materials-body"></div>
+      </section>
+
+      <section id="view-journal" class="view" aria-label="Discoveries">
+        <div id="journal-body"></div>
+      </section>
+
+      <section id="view-upgrades" class="view" aria-label="Upgrades">
+        <div id="upgrades-body"></div>
+      </section>
+    </main>
+
+    <nav class="tabbar" aria-label="Sections">
+      <button class="tab active" data-view="fire"><img alt="" data-icon="flame"><span>Fire</span></button>
+      <button class="tab" data-view="materials"><img alt="" data-icon="log"><span>Materials</span></button>
+      <button class="tab" data-view="journal"><img alt="" data-icon="book"><span>Journal</span></button>
+      <button class="tab" data-view="upgrades"><img alt="" data-icon="bellows"><span>Upgrades</span></button>
+    </nav>
+
+    <div id="reveal" class="reveal" hidden>
+      <div class="reveal-inner">
+        <h2 class="reveal-title">From the Ashes</h2>
+        <p class="reveal-summary" id="reveal-summary"></p>
+        <div class="reveal-grid" id="reveal-grid"></div>
+        <button id="btn-continue" class="btn btn-primary btn-wide">CONTINUE</button>
+      </div>
+    </div>
+
+    <div id="sheet" class="sheet" hidden>
+      <div class="sheet-card" role="dialog" aria-modal="true">
+        <button class="sheet-close icon-btn" aria-label="Close">✕</button>
+        <div id="sheet-body"></div>
+      </div>
+    </div>
+
+    <div id="toasts" aria-live="polite"></div>
+    <div id="boot" class="boot">
+      <div class="boot-title">EMBERS</div>
+      <div class="boot-sub">Keep the fire burning. Discover what remains.</div>
+      <div class="boot-msg" id="boot-msg">Gathering kindling…</div>
+    </div>
+  </div>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

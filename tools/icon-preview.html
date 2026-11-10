@@ -1,0 +1,11 @@
+<!doctype html><meta charset="utf-8"><title>Icon preview</title>
+<style>body{background:#16110e;color:#ddd;font:11px monospace;display:flex;flex-wrap:wrap;gap:6px;padding:8px}
+div{width:84px;text-align:center}img{width:64px;height:64px;image-rendering:pixelated;background:#2a211c}</style>
+<script type="module">
+import { loadData } from '../js/data.js';
+import { iconUrl, uiIconUrl } from '../js/ui/icons.js';
+const d = await loadData('../data/');
+for (const def of Object.values(d.byId)) { const el=document.createElement('div'); el.innerHTML=`<img src="${iconUrl(def)}"><br>${def.id}`; document.body.append(el); }
+for (const s of ['flame','slots','sieve','bellows','book','hand','basket']) { const el=document.createElement('div'); el.innerHTML=`<img src="${uiIconUrl(s)}"><br>${s}`; document.body.append(el); }
+const el=document.createElement('div'); el.innerHTML=`<img src="${iconUrl(d.byId.glowcap,{silhouette:true})}"><br>silhouette`; document.body.append(el);
+</script>

@@ -1,0 +1,369 @@
+// Embers — entry point. Wires data, persistence, the scene and the views together.
+
+import { loadData } from './data.js';
+import { Game } from './game.js';
+import { collectAsh } from './logic/fire.js';
+import { sellValue, isUnlocked, nextUpgradeCost } from './logic/economy.js';
+import { canStokeNow } from './logic/fire.js';
+import { effectiveMaterial } from './logic/stats.js';
+import { Scene, loadSprites } from './ui/scene.js';
+import { iconUrl, uiIconUrl } from './ui/icons.js';
+import { sfx, startAmbience, stopAmbience } from './ui/audio.js';
+import { $, $$, esc, fmtDur, fmtNum, fmtStat } from './ui/util.js';
+import { FireView } from './ui/fireView.js';
+import { MaterialsView } from './ui/materialsView.js';
+import { JournalView, rewardText } from './ui/journalView.js';
+import { UpgradesView } from './ui/upgradesView.js';
+
+const ui = {
+  view: 'fire',
+  revealing: false,
+  toast, bump, go, showItem, openSift: () => openSift(),
+};
+
+let game; let scene; let fireView; let materialsView; let journalView; let upgradesView;
+
+// ------------------------------------------------------------ toasts & small helpers
+
+function toast(msg, type = '', iconId = null) {
+  const box = $('#toasts');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  const def = iconId && game?.data.byId[iconId];
+  el.innerHTML = `${def ? `<img class="px-icon" src="${iconUrl(def)}" alt="">` : iconId === 'basket' ? `<img class="px-icon" src="${uiIconUrl('basket')}" alt="">` : ''}<span>${esc(msg)}</span>`;
+  box.append(el);
+  while (box.children.length > 3) box.firstChild.remove();
+  setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 350); }, type === 'milestone' ? 4200 : 2600);
+}
+
+function bump(which) {
+  const el = $(`.coin.${which}`);
+  if (!el) return;
+  el.classList.remove('bump');
+  void el.offsetWidth;
+  el.classList.add('bump');
+}
+
+function renderWallet() {
+  $('#w-sparks').textContent = fmtNum(game.state.sparks);
+  $('#w-cores').textContent = fmtNum(game.state.cores);
+}
+
+function go(view, sub) {
+  ui.view = view;
+  $$('.tab').forEach((t) => t.classList.toggle('active', t.dataset.view === view));
+  $$('.view').forEach((v) => v.classList.toggle('active', v.id === `view-${view}`));
+  if (view === 'fire') scene.start(); else scene.stop();
+  if (view === 'materials' && sub) materialsView.setSub(sub);
+  renderAll();
+  window.scrollTo({ top: 0 });
+}
+
+function renderAll() {
+  const now = game.now();
+  renderWallet();
+  if (ui.view === 'fire') fireView.render(now);
+  else if (ui.view === 'materials') materialsView.render();
+  else if (ui.view === 'journal') journalView.render(now);
+  else if (ui.view === 'upgrades') upgradesView.render();
+  renderDots(now);
+}
+
+function renderDots(now) {
+  const s = game.state; const d = game.data;
+  const dots = {
+    fire: ui.view !== 'fire' && (s.fire.status === 'ash' || (s.fire.status === 'burning' && canStokeNow(s, d, now))),
+    upgrades: d.upgrades.some((u) => { const c = nextUpgradeCost(s, d, u.id); return c && s.sparks >= c.sparks && s.cores >= c.cores; }),
+  };
+  $$('.tab').forEach((t) => {
+    const want = Boolean(dots[t.dataset.view]);
+    const has = t.querySelector('.dot');
+    if (want && !has) t.insertAdjacentHTML('beforeend', '<i class="dot"></i>');
+    if (!want && has) has.remove();
+  });
+}
+
+// ------------------------------------------------------------ sheets
+
+function openSheet(html) {
+  $('#sheet-body').innerHTML = html;
+  $('#sheet').hidden = false;
+}
+function closeSheet() { $('#sheet').hidden = true; }
+
+function showItem(id) {
+  const s = game.state; const d = game.data;
+  const def = d.byId[id];
+  if (!def) return;
+  const known = Boolean(s.discoveries[id] || (def.kind === 'material' && s.seenMaterials[id]));
+  const sources = d.materials.filter((m) => m.loot.some((e) => e.item === id));
+  const srcTxt = sources.map((m) => (s.seenMaterials[m.id] ? esc(m.name) : '???')).join(', ');
+  let extra = '';
+  if (def.kind === 'material' && known) {
+    const e = effectiveMaterial(s, d, id);
+    extra += `<h3>Characteristics</h3><p>Burns ${fmtDur(e.burnSeconds)} · Heat ${fmtStat(e.heat)} · Quality ${fmtStat(e.quality)} · Essence ${fmtStat(e.essence)} · Ash yield ${e.ashYield}</p>`;
+    extra += `<p class="muted">Owned: ${s.inventory[id] || 0}${isUnlocked(s, d, id) ? ` · Shop price ✦${def.price}` : ''}</p>`;
+  }
+  if (def.kind === 'treasure' && known) extra += `<p class="muted">Trades for ✦${sellValue(d, id)} each.</p>`;
+  if (def.kind === 'core' && known) extra += '<p class="muted">Added straight to your Ember Cores (◆), used for the deepest upgrades.</p>';
+  if (def.tags?.length && known) extra += `<p class="muted">Favoured by ${def.tags.includes('magic') ? 'Essence' : 'Heat'}.</p>`;
+  openSheet(`
+    <div class="detail-head">
+      <img class="px-icon" src="${iconUrl(def, { silhouette: !known })}" alt="">
+      <div><h2>${known ? esc(def.name) : 'Undiscovered'}</h2><span class="rarity r-${def.rarity}">${def.rarity}${def.kind === 'material' ? ' · burnable' : ''}</span></div>
+    </div>
+    <p>${known ? esc(def.description) : 'Something waits to be found in the ashes.'}</p>
+    ${sources.length ? `<p class="muted">Found in the ashes of: ${srcTxt}</p>` : ''}
+    ${s.discoveries[id] ? `<p class="muted">Total recovered: ${fmtNum(s.discoveries[id].count)}</p>` : ''}
+    ${extra}`);
+}
+
+function howToPlayHtml() {
+  const thr = game.data.config.stokeThresholdSeconds / 60;
+  return `
+    <h2>Embers</h2>
+    <p class="muted">Keep the fire burning. Discover what remains.</p>
+    <ol>
+      <li>Your fire burns in real time — even while the game is closed.</li>
+      <li>When it drops to <b>${thr} minutes</b> or less, you can <b>stoke</b> it: tap fuel to fill your slots, then press <b>STOKE FIRE</b>.</li>
+      <li>You start with one slot per stoke. Upgrades add more.</li>
+      <li>Every material has its own burn time, <span style="color:var(--heat)">heat</span>, <span style="color:var(--quality)">quality</span> and <span style="color:var(--essence)">essence</span> — and its own hidden treasures.</li>
+      <li>If the fire reaches zero, it goes out. Press <b>SIFT THROUGH ASHES</b> to recover everything its fuel left behind.</li>
+      <li>Trade treasures for Sparks, buy better fuel and permanent upgrades, and light another fire.</li>
+    </ol>
+    <p class="muted">Heat favours fiery finds and Ember Cores. Quality favours rarer finds. Essence favours magical ones. Mix your fuel.</p>
+    <p class="muted">Fallen leaves and twigs collect in your basket over time, so you can always restart.</p>`;
+}
+
+function showSettings() {
+  const s = game.state;
+  openSheet(`
+    ${howToPlayHtml()}
+    <h3>Settings</h3>
+    <div class="settings-row"><span>Sound</span><button class="btn btn-small" id="set-sound">${s.settings.sound ? 'On' : 'Off'}</button></div>
+    <div class="settings-row"><span>Back up progress</span><button class="btn btn-small" id="set-export">Export</button></div>
+    <div class="settings-row"><span>Restore a backup</span><button class="btn btn-small" id="set-import">Import</button></div>
+    <div id="save-io"></div>
+    <div class="settings-row"><span>Erase all progress</span><button class="btn btn-small btn-danger" id="set-reset">Reset</button></div>
+    <p class="muted" style="font-size:12px">Progress is saved on this device automatically.</p>`);
+  $('#set-sound').onclick = () => {
+    game.act((st) => { st.settings.sound = !st.settings.sound; });
+    sfx.setEnabled(game.state.settings.sound);
+    if (game.state.settings.sound) { sfx.unlock(); sfx.tap(); }
+    $('#set-sound').textContent = game.state.settings.sound ? 'On' : 'Off';
+  };
+  $('#set-export').onclick = () => {
+    const txt = btoa(unescape(encodeURIComponent(JSON.stringify(game.state))));
+    $('#save-io').innerHTML = `<textarea class="save-text" readonly>${txt}</textarea><button class="btn btn-small" id="copy-save">Copy</button>`;
+    $('#copy-save').onclick = async () => {
+      try { await navigator.clipboard.writeText(txt); toast('Save copied.'); } catch { $('.save-text').select(); }
+    };
+  };
+  $('#set-import').onclick = () => {
+    $('#save-io').innerHTML = '<textarea class="save-text" placeholder="Paste a backup here"></textarea><button class="btn btn-small" id="do-import">Restore</button>';
+    $('#do-import').onclick = () => {
+      try {
+        const raw = $('.save-text').value.trim();
+        const json = raw.startsWith('{') ? raw : decodeURIComponent(escape(atob(raw)));
+        game.importSave(json);
+        closeSheet(); toast('Backup restored.'); renderAll();
+      } catch (err) { toast(`Could not restore: ${err.message}`, 'error'); }
+    };
+  };
+  $('#set-reset').onclick = () => {
+    if (!window.confirm('Erase all progress and start over?')) return;
+    if (!window.confirm('Really? This cannot be undone.')) return;
+    game.reset(); closeSheet(); go('fire'); openSheet(howToPlayHtml());
+  };
+}
+
+// ------------------------------------------------------------ ash sifting & reveal
+
+async function openSift() {
+  if (!game.state.pendingAsh || ui.revealing) return;
+  ui.revealing = true;
+  sfx.unlock();
+  sfx.sift();
+  // Rewards are granted the instant the player sifts — before any animation —
+  // so a refresh or closed tab mid-reveal can never lose (or duplicate) them.
+  const res = game.act((s, d, now) => {
+    const p = collectAsh(s, d, now);
+    s.unseenReveal = p;
+    return { p };
+  });
+  fireView.render();
+  renderWallet();
+  if (!res.p) { ui.revealing = false; renderAll(); return; }
+  await scene.sift();
+  showReveal(res.p);
+}
+
+function showReveal(p) {
+  const d = game.data;
+  ui.revealing = true;
+  const grid = $('#reveal-grid');
+  const total = p.rewards.reduce((a, r) => a + r.qty, 0);
+  $('#reveal-summary').textContent =
+    `A ${fmtDur(p.duration)} fire · ${p.materialsCount} material${p.materialsCount === 1 ? '' : 's'} burned · ${total} thing${total === 1 ? '' : 's'} recovered`;
+  const order = [...p.rewards].sort((a, b) => d.rarityIndex[d.byId[a.id].rarity] - d.rarityIndex[d.byId[b.id].rarity]);
+  grid.innerHTML = order.length ? order.map((r) => {
+    const def = d.byId[r.id];
+    const isNew = p.newDiscoveries.includes(r.id);
+    return `<div class="loot r-${def.rarity}" data-rarity="${def.rarity}">
+      ${isNew ? '<span class="new">NEW DISCOVERY</span>' : ''}
+      <img class="px-icon" src="${iconUrl(def)}" alt="">
+      <span class="nm">${esc(def.name)}</span>
+      <span class="q">×${r.qty}</span>
+      <span class="rarity r-${def.rarity}">${def.rarity}</span>
+    </div>`;
+  }).join('') : '<div class="nothing">Only soft grey ash remained this time.<br>Longer fires and richer fuel leave more behind.</div>';
+  $('#reveal').hidden = false;
+  const btn = $('#btn-continue');
+  btn.disabled = true;
+
+  const cards = $$('.loot', grid);
+  let i = 0;
+  let timer = null;
+  const showNext = () => {
+    if (i >= cards.length) { btn.disabled = false; return; }
+    const c = cards[i++];
+    const rarity = c.dataset.rarity;
+    c.classList.add('show');
+    addSparkles(c, rarity);
+    sfx.reveal(rarity);
+    c.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    const pause = { legendary: 1100, epic: 750, rare: 420 }[rarity] || Math.max(70, 260 - cards.length * 8);
+    timer = setTimeout(showNext, pause);
+  };
+  grid.onclick = () => { // tap to skip ahead
+    clearTimeout(timer);
+    while (i < cards.length) cards[i++].classList.add('show');
+    btn.disabled = false;
+  };
+  timer = setTimeout(showNext, 250);
+  if (!cards.length) btn.disabled = false;
+}
+
+function addSparkles(card, rarity) {
+  const colors = { rare: ['#5fb4ff', '#bfe4ff'], epic: ['#c27bff', '#f0d0ff', '#7fd8ff'], legendary: ['#ffb52e', '#fff2a0', '#ff7a2a', '#ffffff'] }[rarity];
+  if (!colors) return;
+  const n = { rare: 8, epic: 14, legendary: 24 }[rarity];
+  for (let k = 0; k < n; k++) {
+    const sp = document.createElement('i');
+    sp.className = 'sparkle';
+    const a = Math.random() * Math.PI * 2; const r = 26 + Math.random() * 30;
+    sp.style.cssText = `left:50%;top:28px;background:${colors[k % colors.length]};--dx:${Math.cos(a) * r}px;--dy:${Math.sin(a) * r}px;animation-delay:${Math.random() * 0.3}s`;
+    card.append(sp);
+  }
+}
+
+function closeReveal() {
+  $('#reveal').hidden = true;
+  game.act((s) => { s.unseenReveal = null; });
+  ui.revealing = false;
+  scene.setFire({ status: 'cold' });
+  renderAll();
+}
+
+// ------------------------------------------------------------ events & loop
+
+function onGameEvent(e) {
+  const d = game.data;
+  if (e.type === 'milestone') {
+    const m = d.milestones.find((x) => x.id === e.id);
+    sfx.milestone();
+    toast(`★ ${m.name} — ${rewardText(d, m.reward)}`, 'milestone');
+    bump('sparks');
+  } else if (e.type === 'extinguished' && booted) {
+    sfx.extinguish();
+    stopAmbience();
+  } else if (e.type === 'save-error') {
+    toast('Progress could not be saved — storage may be full or disabled.', 'error');
+  } else if (e.type === 'change') {
+    renderWallet();
+  } else if (e.type === 'synced') {
+    renderAll();
+  }
+}
+
+let booted = false;
+let lastSlow = 0;
+
+function tick() {
+  if (!game) return;
+  game.tick();
+  const now = game.now();
+  renderWallet();
+  fireView.update(now);
+  if (now - lastSlow > 1000) {
+    lastSlow = now;
+    renderDots(now);
+    if (ui.view === 'journal' && game.state.fire.status === 'burning' && now % 5000 < 1000) journalView.render(now);
+  }
+}
+
+async function boot() {
+  try {
+    const [data, sprites] = await Promise.all([loadData('./data/'), loadSprites('./assets/sprites/')]);
+    game = new Game(data, window.localStorage);
+    game.on(onGameEvent);
+    const bootEvents = game.boot();
+
+    scene = new Scene($('#scene'), sprites);
+    fireView = new FireView(game, scene, ui);
+    materialsView = new MaterialsView(game, ui);
+    journalView = new JournalView(game, ui);
+    upgradesView = new UpgradesView(game, ui);
+
+    $('.logo-flame').style.backgroundImage = `url(${uiIconUrl('flame')})`;
+    $$('.tab img').forEach((img) => { img.src = uiIconUrl(img.dataset.icon); });
+    $$('.tab').forEach((t) => t.addEventListener('click', () => { sfx.unlock(); sfx.tap(); go(t.dataset.view); }));
+    $('#btn-settings').addEventListener('click', () => { sfx.unlock(); showSettings(); });
+    $('#sheet').addEventListener('click', (e) => { if (e.target.id === 'sheet' || e.target.closest('.sheet-close')) closeSheet(); });
+    $('#btn-continue').addEventListener('click', () => { sfx.tap(); closeReveal(); });
+
+    sfx.setEnabled(game.state.settings.sound);
+    document.addEventListener('pointerdown', () => {
+      sfx.unlock();
+      if (game.state.settings.sound && game.state.fire.status === 'burning') startAmbience();
+    }, { once: true });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        game.save();
+        scene.stop();
+      } else {
+        game.sync();
+        game.tick();
+        if (ui.view === 'fire') scene.start();
+        renderAll();
+      }
+    });
+    window.addEventListener('pagehide', () => game.save());
+    window.addEventListener('storage', (e) => { if (e.key === game.data.config.saveKey && game.sync()) renderAll(); });
+
+    // Paint the current state immediately (no dying animation for a fire that went out while away is skipped:
+    // returning players still see the embers fade before the ash pile appears).
+    fireView.update(game.now());
+    go('fire');
+    scene.start();
+    for (const e of bootEvents) if (e.type === 'milestone') onGameEvent(e);
+    booted = true;
+    setInterval(tick, 250);
+    $('#app').classList.remove('loading');
+
+    if (game.state.unseenReveal) {
+      // Rewards were already granted; replay the reveal the player missed.
+      ui.revealing = true;
+      scene.setFire({ status: 'cold' });
+      showReveal(game.state.unseenReveal);
+    } else if (game.isNew) {
+      openSheet(howToPlayHtml());
+    }
+  } catch (err) {
+    console.error(err);
+    $('#boot-msg').textContent = `Something went wrong while loading: ${err.message}`;
+  }
+}
+
+boot();

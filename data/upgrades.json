@@ -1,0 +1,75 @@
+[
+  {
+    "id": "capacity", "group": "firekeeping", "name": "Expanded Stoking Capacity",
+    "description": "Add more materials in a single stoke.",
+    "icon": "slots",
+    "effect": { "type": "capacity" },
+    "costs": [
+      { "sparks": 60 }, { "sparks": 180 }, { "sparks": 450 }, { "sparks": 1100 },
+      { "sparks": 2400, "cores": 3 }, { "sparks": 5000, "cores": 8 }
+    ]
+  },
+  {
+    "id": "seasoned_wood", "group": "firekeeping", "name": "Seasoned Wood",
+    "description": "Wood materials burn longer.",
+    "icon": "log",
+    "effect": { "type": "burnCategory", "category": "wood", "perLevel": 0.10 },
+    "costs": [ { "sparks": 50 }, { "sparks": 110 }, { "sparks": 240 }, { "sparks": 520 }, { "sparks": 1100 } ]
+  },
+  {
+    "id": "efficient_combustion", "group": "firekeeping", "name": "Efficient Combustion",
+    "description": "All materials burn longer.",
+    "icon": "flame",
+    "effect": { "type": "burnAll", "perLevel": 0.06 },
+    "costs": [ { "sparks": 120 }, { "sparks": 260 }, { "sparks": 560 }, { "sparks": 1200, "cores": 1 }, { "sparks": 2500, "cores": 3 } ]
+  },
+  {
+    "id": "improved_bellows", "group": "firekeeping", "name": "Improved Bellows",
+    "description": "Materials contribute more heat.",
+    "icon": "bellows",
+    "effect": { "type": "heat", "perLevel": 0.12 },
+    "costs": [ { "sparks": 60 }, { "sparks": 130 }, { "sparks": 280 }, { "sparks": 600 }, { "sparks": 1300 } ]
+  },
+  {
+    "id": "fire_mastery", "group": "firekeeping", "name": "Fire Mastery",
+    "description": "Materials contribute more quality, favouring finer rewards.",
+    "icon": "star",
+    "effect": { "type": "quality", "perLevel": 0.10 },
+    "costs": [ { "sparks": 100 }, { "sparks": 220 }, { "sparks": 480 }, { "sparks": 1000 }, { "sparks": 2200 } ]
+  },
+  {
+    "id": "ember_preservation", "group": "firekeeping", "name": "Ember Preservation",
+    "description": "Embers hold their spark: stoke earlier and draw out more essence.",
+    "icon": "core",
+    "effect": { "type": "preservation", "thresholdPerLevel": 90, "essencePerLevel": 0.08 },
+    "costs": [ { "sparks": 400, "cores": 1 }, { "sparks": 1200, "cores": 3 }, { "sparks": 3000, "cores": 6 } ]
+  },
+  {
+    "id": "fine_ash_sieve", "group": "ash", "name": "Fine Ash Sieve",
+    "description": "Every material yields more reward rolls.",
+    "icon": "sieve",
+    "effect": { "type": "rolls", "perLevel": 0.10 },
+    "costs": [ { "sparks": 80 }, { "sparks": 180 }, { "sparks": 400 }, { "sparks": 850 }, { "sparks": 1800, "cores": 2 } ]
+  },
+  {
+    "id": "careful_recovery", "group": "ash", "name": "Careful Recovery",
+    "description": "Better chance of finding uncommon rewards.",
+    "icon": "hand",
+    "effect": { "type": "rarityChance", "rarities": ["uncommon"], "perLevel": 0.15 },
+    "costs": [ { "sparks": 70 }, { "sparks": 150 }, { "sparks": 320 }, { "sparks": 700 }, { "sparks": 1500 } ]
+  },
+  {
+    "id": "lucky_charm", "group": "ash", "name": "Lucky Charm",
+    "description": "Better chance of finding rare, epic and legendary rewards.",
+    "icon": "clover",
+    "effect": { "type": "rarityChance", "rarities": ["rare", "epic", "legendary"], "perLevel": 0.12 },
+    "costs": [ { "sparks": 150 }, { "sparks": 330 }, { "sparks": 720 }, { "sparks": 1500, "cores": 1 }, { "sparks": 3200, "cores": 3 } ]
+  },
+  {
+    "id": "ancient_knowledge", "group": "ash", "name": "Ancient Knowledge",
+    "description": "Better chance of magical discoveries.",
+    "icon": "book",
+    "effect": { "type": "tagChance", "tag": "magic", "perLevel": 0.15 },
+    "costs": [ { "sparks": 200 }, { "sparks": 440 }, { "sparks": 950, "cores": 1 }, { "sparks": 2000, "cores": 2 }, { "sparks": 4200, "cores": 4 } ]
+  }
+]

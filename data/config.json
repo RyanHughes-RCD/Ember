@@ -1,0 +1,46 @@
+{
+  "saveKey": "embers-save",
+  "stokeThresholdSeconds": 300,
+  "capacityByLevel": [1, 2, 3, 4, 5, 7, 10],
+  "rarities": ["common", "uncommon", "rare", "epic", "legendary"],
+  "rarityColors": {
+    "common": "#b9ab97",
+    "uncommon": "#7fc46a",
+    "rare": "#5fb4ff",
+    "epic": "#c27bff",
+    "legendary": "#ffb52e"
+  },
+  "categories": ["wood", "flora", "fungi", "minerals"],
+  "currency": {
+    "primary": { "id": "sparks", "name": "Sparks", "symbol": "✦" },
+    "secondary": { "id": "cores", "name": "Ember Cores", "symbol": "◆" }
+  },
+  "newGame": {
+    "sparks": 30,
+    "cores": 0,
+    "inventory": { "dry_leaves": 6, "twigs": 6, "pine_log": 3 },
+    "welcomeFire": {
+      "remainingSeconds": 330,
+      "materials": { "twigs": 1 }
+    }
+  },
+  "gathering": {
+    "description": "Fallen fuel collects in a basket near the fire, even while you are away.",
+    "sources": [
+      { "id": "dry_leaves", "everySeconds": 300, "cap": 8 },
+      { "id": "twigs", "everySeconds": 720, "cap": 5 }
+    ]
+  },
+  "forage": {
+    "description": "Emergency forage, offered only when you have no fuel and cannot afford any.",
+    "grant": { "dry_leaves": 3, "twigs": 2 }
+  },
+  "rewards": {
+    "qualityPerTier": 0.025,
+    "heatBonusPerPoint": 0.03,
+    "essenceBonusPerPoint": 0.02,
+    "fireAverageWeight": 0.5,
+    "maxChance": 0.95
+  },
+  "sellRate": 1.0
+}

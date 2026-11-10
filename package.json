@@ -1,0 +1,13 @@
+{
+  "type": "module",
+  "name": "embers",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "test": "node --test tests/*.test.mjs",
+    "test:e2e": "node tests/e2e.cjs",
+    "sprites": "python3 tools/build_sprites.py"
+  },
+  "description": "Embers \u2014 a small, cozy idle campfire game."
+}

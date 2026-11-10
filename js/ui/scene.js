@@ -24,6 +24,127 @@ export async function loadSprites(base = './assets/sprites/') {
 
 const rand = (a, b) => a + Math.random() * (b - a);
 
+// ---------------------------------------------------------------- fire-ring stones
+
+function seeded(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// dark → light; a few different kinds of stone so the ring isn't uniform
+const STONE_PALETTES = [
+  ['#151311', '#262320', '#3a3632', '#55504a', '#746d65', '#958c82'], // warm grey
+  ['#121316', '#212328', '#33363c', '#4c5057', '#6a6f77', '#8a9098'], // blue-grey granite
+  ['#16120e', '#28201a', '#3d3229', '#574839', '#74624e', '#927e66'], // brown sandstone
+  ['#0f0f0f', '#1d1d1c', '#2e2d2b', '#444240', '#5f5c58', '#7c7873'], // dark basalt
+];
+const MOSS = ['#1f2a14', '#2e3d1c', '#3f5226'];
+
+function makeStone(rng, w, h, side, back) {
+  const pal = STONE_PALETTES[Math.floor(rng() * STONE_PALETTES.length)];
+  const cx = w / 2 + (rng() - 0.5) * 0.8;
+  const rx = w / 2; const ry = h * 0.58;
+  const cy = h - ry * 0.82; // the stone sits partly sunk into the ground
+  const tilt = (rng() - 0.5) * 0.7; // leaning one way or the other
+  const f1 = rng() * 6; const f2 = rng() * 6; const lump = 0.12 + rng() * 0.12;
+  const inside = (x, y) => {
+    const dx = (x + 0.5 - cx) / rx;
+    const dy = (y + 0.5 - cy) / ry + dx * tilt;
+    if (y >= h) return false;
+    const a = Math.atan2(dy, dx);
+    const r = 1 + lump * Math.sin(a * 3 + f1) + lump * 0.7 * Math.sin(a * 5 + f2);
+    return dx * dx + dy * dy <= r * r;
+  };
+  const isIn = new Set();
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (inside(x, y)) isIn.add(`${x},${y}`);
+  const has = (x, y) => isIn.has(`${x},${y}`);
+
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const g = c.getContext('2d');
+  const rim = [];
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (!has(x, y)) continue;
+      const nx = (x + 0.5 - cx) / rx; const ny = (y + 0.5 - cy) / ry + nx * tilt;
+      const top = !has(x, y - 1);
+      const left = !has(x - 1, y); const right = !has(x + 1, y);
+      const bottom = !has(x, y + 1) && y < h - 1;
+      let light = 2.9 - ny * 1.7 - nx * 0.9 + (rng() - 0.5) * 0.8;
+      if (top) light += 0.5;
+      let col;
+      if ((left || right || bottom) && !top) col = pal[0]; // dark outline down the sides
+      else if (y === h - 1 && !top) col = pal[1]; // where it meets the ground
+      else {
+        col = pal[Math.max(1, Math.min(5, Math.round(light)))];
+        if (rng() < 0.1) col = pal[Math.max(1, Math.min(5, Math.round(light) + (rng() < 0.6 ? -2 : 1)))]; // speckles
+      }
+      g.fillStyle = col;
+      g.fillRect(x, y, 1, 1);
+      // which faces turn toward the fire (it is to the stone's `-side`, and behind it for front stones)
+      const facing = side > 0 ? left || nx < -0.35 : right || nx > 0.35;
+      if (back) {
+        if (!top && ny > -0.2) rim.push([x, y, facing ? 0.55 : 0.3]);
+      } else if (top) {
+        rim.push([x, y, facing ? 0.6 : 0.32]);
+      } else if (facing && (left || right)) {
+        rim.push([x, y, 0.4]);
+      }
+    }
+  }
+  // a hairline crack on some stones
+  if (w >= 7 && rng() < 0.55) {
+    let x = Math.floor(w * (0.3 + rng() * 0.4)); let y = 1;
+    g.fillStyle = pal[1];
+    for (let i = 0; i < Math.min(3, h - 2); i++) {
+      if (has(x, y) && has(x - 1, y) && has(x + 1, y) && has(x, y + 1)) g.fillRect(x, y, 1, 1);
+      y += 1; if (rng() < 0.5) x += rng() < 0.5 ? -1 : 1;
+    }
+  }
+  // moss on the shaded side of a few
+  if (rng() < 0.35) {
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        if (!has(x, y) || has(x, y - 1)) continue;
+        if ((x + 0.5 - cx) / rx > 0.15 && rng() < 0.75) {
+          g.fillStyle = MOSS[Math.floor(rng() * MOSS.length)];
+          g.fillRect(x, y, 1, 1);
+        }
+      }
+    }
+  }
+  return { img: c, rim };
+}
+
+/** A ring of irregular stones around the pit (fixed seed: the same ring every visit). */
+function buildStones() {
+  const rng = seeded(4411);
+  const out = [];
+  const count = 13;
+  for (let i = 0; i < count; i++) {
+    const a = (i / count) * Math.PI * 2 + (rng() - 0.5) * 0.32;
+    const front = Math.sin(a) > 0;
+    // nearer (front) stones are larger; the back row is partly hidden behind the logs
+    const depth = (Math.sin(a) + 1) / 2;
+    const w = Math.round(6 + depth * 4 + rng() * 4);
+    const h = Math.round(4 + depth * 2 + rng() * 3);
+    const st = makeStone(rng, w, h, Math.cos(a) >= 0 ? 1 : -1, !front);
+    out.push({
+      ...st, w, h, back: !front,
+      dx: Math.cos(a) * (22 + rng() * 2.5),
+      dy: Math.sin(a) * 6.5 - 4 + h * 0.35 + (rng() - 0.5),
+    });
+  }
+  // draw far stones first so nearer ones overlap them
+  return out.sort((p, q) => p.dy - q.dy);
+}
+
 /** A red-flame copy of the flame sheet: each pixel is remapped by brightness onto a red ramp. */
 function recolorFlames(img) {
   const c = document.createElement('canvas');
@@ -66,6 +187,7 @@ export class Scene {
     this.red = 0; // 0..1 eased mix toward red flames
     this.redTarget = 0;
     this.redFlames = recolorFlames(sprites.flames);
+    this.stones = buildStones();
     this.tmp = document.createElement('canvas');
     this.tmp.width = FRAME_W; this.tmp.height = FRAME_H;
     this.tctx = this.tmp.getContext('2d');
@@ -335,16 +457,29 @@ export class Scene {
   }
 
   drawStones(c, back) {
-    const stones = back
-      ? [[-19, -9], [-11, -12], [-2, -13], [7, -12], [15, -9]]
-      : [[-22, -3], [-14, 0], [-5, 1], [4, 1], [13, 0], [21, -3]];
-    for (const [dx, dy] of stones) {
-      const x = this.fx + dx - 3;
-      const y = this.fb + dy - 2;
-      c.fillStyle = '#1a1716'; c.fillRect(x, y, 7, 4);
-      c.fillStyle = '#3c3632'; c.fillRect(x + 1, y, 5, 3);
-      c.fillStyle = '#5e5650'; c.fillRect(x + 1, y, 3, 1);
-      if (this.mode === 'burning') { c.fillStyle = this.red > 0.5 ? 'rgba(255,60,50,0.4)' : 'rgba(255,140,60,0.35)'; c.fillRect(x + 2, y, 3, 1); }
+    const burning = this.mode === 'burning';
+    const glow = burning ? 0.45 + this.shown * 0.4 + this.flare * 0.2 : this.mode === 'dying' ? 0.25 * Math.max(0, 1 - this.modeT / 4.2) : 0;
+    const warm = [255, 150 - 100 * this.red, 70 - 30 * this.red].map(Math.round).join(',');
+    for (const st of this.stones) {
+      if (st.back !== back) continue;
+      const x = Math.round(this.fx + st.dx - st.w / 2);
+      const y = Math.round(this.fb + st.dy - st.h);
+      // contact shadow
+      c.globalAlpha = 0.55;
+      c.fillStyle = '#050403';
+      c.fillRect(x, y + st.h - 1, st.w, 2);
+      c.fillRect(x + 1, y + st.h + 1, st.w - 2, 1);
+      c.globalAlpha = 1;
+      c.drawImage(st.img, x, y);
+      // faces turned toward the fire catch its light
+      if (glow > 0) {
+        c.fillStyle = `rgb(${warm})`;
+        for (const [px, py, k] of st.rim) {
+          c.globalAlpha = Math.min(0.5, glow * k * 0.75);
+          c.fillRect(x + px, y + py, 1, 1);
+        }
+        c.globalAlpha = 1;
+      }
     }
   }
 }

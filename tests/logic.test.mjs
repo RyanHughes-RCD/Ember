@@ -7,7 +7,7 @@ import { createNewSave, migrate, SaveStore, emptyFire } from '../js/logic/state.
 import { settle, stoke, collectAsh, remainingAt, canStokeNow, durationAt } from '../js/logic/fire.js';
 import { generateRewards } from '../js/logic/rewards.js';
 import {
-  buyMaterial, buyUpgrade, sellAllTreasures, accrueGathering, collectBasket, canForage, forage, isUnlocked,
+  buyMaterial, buyUpgrade, sellAllTreasures, enduranceBonus, accrueGathering, collectBasket, canForage, forage, isUnlocked,
 } from '../js/logic/economy.js';
 import { getCapacity, getThreshold, effectiveMaterial } from '../js/logic/stats.js';
 
@@ -205,12 +205,44 @@ test('milestones award once and unlock materials', () => {
   s.upgrades.capacity = 6;
   s.inventory.pine_log = 10;
   stoke(s, data, { pine_log: 10 }, T0 + 30_000);
-  const ev = settle(s, data, T0 + 2 * HOUR);
+  const ev = settle(s, data, T0 + 3 * HOUR + MIN);
   const ids = ev.filter((e) => e.type === 'milestone').map((e) => e.id);
-  assert.deepEqual(ids, ['m15', 'm30', 'm60']);
+  assert.deepEqual(ids, ['e01', 'e02', 'e03', 'e04']);
   assert.equal(isUnlocked(s, data, 'oak_log'), true);
   assert.equal(s.inventory.oak_log, 2);
-  assert.deepEqual(settle(s, data, T0 + 2 * HOUR + 1000).filter((e) => e.type === 'milestone'), []);
+  assert.deepEqual(settle(s, data, T0 + 3 * HOUR + 2 * MIN).filter((e) => e.type === 'milestone'), []);
+});
+
+test('milestone ladder is evenly spaced and strictly increasing', () => {
+  for (let i = 1; i < data.milestones.length; i++) {
+    const ratio = data.milestones[i].seconds / data.milestones[i - 1].seconds;
+    assert.ok(ratio > 1.2 && ratio <= 1.6, `step ${i} ratio ${ratio}`);
+    assert.ok(data.milestones[i].reward.sparks > data.milestones[i - 1].reward.sparks);
+  }
+});
+
+test('endurance bonus is a smooth curve, granted once with the ashes', () => {
+  let prev = -1;
+  for (let m = 0; m <= 72 * 60; m += 30) {
+    const b = enduranceBonus(data, m * 60);
+    assert.ok(b.sparks >= prev, 'never decreases');
+    assert.ok(b.sparks - Math.max(prev, 0) <= 12, 'no jumps between half-hour steps');
+    prev = b.sparks;
+  }
+  assert.deepEqual(enduranceBonus(data, 0), { sparks: 0, cores: 0 });
+  const s = createNewSave(data, T0);
+  s.upgrades.capacity = 6; s.inventory.oak_log = 10;
+  stoke(s, data, { oak_log: 10 }, T0 + 30_000);
+  settle(s, data, T0 + 60 * HOUR, seeded(2));
+  const expected = enduranceBonus(data, s.pendingAsh.duration);
+  assert.deepEqual(s.pendingAsh.endurance, expected);
+  assert.ok(expected.cores >= 3);
+  const sparks = s.sparks; const cores = s.cores;
+  collectAsh(s, data, T0 + 60 * HOUR);
+  assert.equal(s.sparks, sparks + expected.sparks);
+  assert.equal(s.cores - cores >= expected.cores, true);
+  collectAsh(s, data, T0 + 60 * HOUR);
+  assert.equal(s.sparks, sparks + expected.sparks, 'not granted twice');
 });
 
 test('passive gathering accrues offline, caps, and collects', () => {

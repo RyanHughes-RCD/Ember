@@ -4,7 +4,7 @@
 import { effectiveMaterial, getCapacity, getThreshold } from './stats.js';
 import { generateRewards } from './rewards.js';
 import { newFireId } from './state.js';
-import { checkMilestones } from './economy.js';
+import { checkMilestones, enduranceBonus } from './economy.js';
 
 /** Seconds remaining right now, without mutating anything. */
 export function remainingAt(fire, now) {
@@ -64,6 +64,7 @@ export function extinguish(state, data, at, rng = Math.random) {
     fireId: fire.id,
     rewards,
     newDiscoveries,
+    endurance: enduranceBonus(data, fire.totalDuration),
     duration: fire.totalDuration,
     materialsBurned: { ...fire.materialsBurned },
     materialsCount: fire.materialsCount,
@@ -169,6 +170,11 @@ export function collectAsh(state, data, now) {
     const d = state.discoveries[id] || { count: 0, firstFoundAt: now };
     d.count += qty;
     state.discoveries[id] = d;
+  }
+  if (pending.endurance) {
+    state.sparks += pending.endurance.sparks || 0;
+    state.cores += pending.endurance.cores || 0;
+    state.records.sparksEarned += pending.endurance.sparks || 0;
   }
   state.pendingAsh = null;
   state.fire.status = 'cold';

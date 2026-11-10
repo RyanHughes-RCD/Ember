@@ -2,6 +2,22 @@
 
 import { upgradeLevel } from './stats.js';
 
+// ---------------------------------------------------------------- endurance
+
+/**
+ * Smooth endurance bonus for a fire that burned `seconds`: no thresholds, it
+ * simply grows a little faster than linearly with how long the fire was kept alive.
+ */
+export function enduranceBonus(data, seconds) {
+  const e = data.config.endurance;
+  if (!e) return { sparks: 0, cores: 0 };
+  const hours = Math.max(0, seconds) / 3600;
+  return {
+    sparks: Math.round(e.sparksPerHour * hours ** e.sparksExponent),
+    cores: Math.floor(e.coresPerHour * hours ** e.coresExponent + 1e-9),
+  };
+}
+
 // ---------------------------------------------------------------- milestones
 
 export function checkMilestones(state, data, duration, now) {

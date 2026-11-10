@@ -221,6 +221,10 @@ function showReveal(p) {
   $('#reveal-summary').textContent =
     `A ${fmtDur(p.duration)} fire · ${p.materialsCount} material${p.materialsCount === 1 ? '' : 's'} burned · ${total} thing${total === 1 ? '' : 's'} recovered`;
   const order = [...p.rewards].sort((a, b) => d.rarityIndex[d.byId[a.id].rarity] - d.rarityIndex[d.byId[b.id].rarity]);
+  const e = p.endurance || { sparks: 0, cores: 0 };
+  const bonus = e.sparks || e.cores
+    ? `<div class="endurance">Endurance bonus <b>✦ ${fmtNum(e.sparks)}</b>${e.cores ? ` <b class="c">◆ ${e.cores}</b>` : ''}</div>` : '';
+  $('#reveal-bonus').innerHTML = bonus;
   grid.innerHTML = order.length ? order.map((r) => {
     const def = d.byId[r.id];
     const isNew = p.newDiscoveries.includes(r.id);

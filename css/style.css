@@ -383,6 +383,12 @@ img.px-icon, canvas, .pixel { image-rendering: pixelated; image-rendering: crisp
 }
 .loot.r-epic::after { background: conic-gradient(from 0deg, transparent, rgba(194, 123, 255, 0.3), transparent 30%, rgba(194, 123, 255, 0.3), transparent 60%); }
 @keyframes spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+.endurance {
+  text-align: center; margin: 0 2px 12px; padding: 8px; font-size: 13px; color: var(--muted);
+  border: 2px solid #6a4a20; border-radius: 3px; background: linear-gradient(90deg, #2a1c0e, var(--panel), #2a1c0e);
+}
+.endurance b { color: var(--amber); font-weight: 400; margin-left: 6px; }
+.endurance b.c { color: #ff6a3a; }
 .nothing { grid-column: 1 / -1; text-align: center; color: var(--muted); padding: 20px; }
 
 /* ------------------------------------------------------------ sheet */

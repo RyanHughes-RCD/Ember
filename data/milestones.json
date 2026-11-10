@@ -1,9 +1,17 @@
 [
-  { "id": "m15", "seconds": 900, "name": "First Watch", "description": "Keep one fire burning for 15 minutes.", "reward": { "sparks": 15 } },
-  { "id": "m30", "seconds": 1800, "name": "Steady Hands", "description": "Keep one fire burning for 30 minutes.", "reward": { "sparks": 60 } },
-  { "id": "m60", "seconds": 3600, "name": "The Long Hour", "description": "Keep one fire burning for 1 hour.", "reward": { "items": { "oak_log": 2 }, "unlock": "oak_log" } },
-  { "id": "m180", "seconds": 10800, "name": "Deep Coals", "description": "Keep one fire burning for 3 hours.", "reward": { "cores": 3, "sparks": 100 } },
-  { "id": "m360", "seconds": 21600, "name": "Glow in the Dark", "description": "Keep one fire burning for 6 hours.", "reward": { "items": { "glowcap": 3 }, "unlock": "glowcap" } },
-  { "id": "m720", "seconds": 43200, "name": "Keeper of the Night", "description": "Keep one fire burning for 12 hours.", "reward": { "cores": 5, "sparks": 500, "title": "Keeper of the Night" } },
-  { "id": "m1440", "seconds": 86400, "name": "The Undying Flame", "description": "Keep one fire burning for a full day.", "reward": { "cores": 10, "items": { "ancientwood": 2 }, "unlock": "ancientwood" } }
+  {"id": "e01", "seconds": 3600, "name": "First Watch", "description": "Keep one fire burning for 1 hour.", "reward": {"sparks": 20}},
+  {"id": "e02", "seconds": 5400, "name": "Steady Hands", "description": "Keep one fire burning for 1.5 hours.", "reward": {"sparks": 30}},
+  {"id": "e03", "seconds": 7200, "name": "Warm Company", "description": "Keep one fire burning for 2 hours.", "reward": {"sparks": 45}},
+  {"id": "e04", "seconds": 10800, "name": "The Long Evening", "description": "Keep one fire burning for 3 hours.", "reward": {"sparks": 65, "items": {"oak_log": 2}, "unlock": "oak_log"}},
+  {"id": "e05", "seconds": 14400, "name": "Deep Coals", "description": "Keep one fire burning for 4 hours.", "reward": {"sparks": 90}},
+  {"id": "e06", "seconds": 21600, "name": "Night Watch", "description": "Keep one fire burning for 6 hours.", "reward": {"sparks": 130, "cores": 1}},
+  {"id": "e07", "seconds": 32400, "name": "Small Hours", "description": "Keep one fire burning for 9 hours.", "reward": {"sparks": 190, "cores": 1}},
+  {"id": "e08", "seconds": 43200, "name": "Glow in the Dark", "description": "Keep one fire burning for 12 hours.", "reward": {"sparks": 260, "cores": 2, "items": {"glowcap": 3}, "unlock": "glowcap"}},
+  {"id": "e09", "seconds": 64800, "name": "Daybreak", "description": "Keep one fire burning for 18 hours.", "reward": {"sparks": 380, "cores": 2}},
+  {"id": "e10", "seconds": 86400, "name": "Keeper of the Night", "description": "Keep one fire burning for a full day.", "reward": {"sparks": 500, "cores": 3, "title": "Keeper of the Night"}},
+  {"id": "e11", "seconds": 129600, "name": "Second Wind", "description": "Keep one fire burning for 1.5 days.", "reward": {"sparks": 750, "cores": 4}},
+  {"id": "e12", "seconds": 172800, "name": "Hearthkeeper", "description": "Keep one fire burning for 2 days.", "reward": {"sparks": 1000, "cores": 5}},
+  {"id": "e13", "seconds": 259200, "name": "Old Flame", "description": "Keep one fire burning for 3 days.", "reward": {"sparks": 1500, "cores": 7, "items": {"ancientwood": 2}, "unlock": "ancientwood"}},
+  {"id": "e14", "seconds": 345600, "name": "Ever-Burning", "description": "Keep one fire burning for 4 days.", "reward": {"sparks": 2000, "cores": 9}},
+  {"id": "e15", "seconds": 518400, "name": "The Undying Flame", "description": "Keep one fire burning for 6 days.", "reward": {"sparks": 3000, "cores": 12, "title": "The Undying Flame"}}
 ]

@@ -22,6 +22,8 @@ so it runs directly on GitHub Pages.
 4. When the fire reaches zero it goes out. Press **SIFT THROUGH ASHES** to get everything at once.
 5. Sell treasures for **Sparks ✦**, buy fuel and permanent upgrades, then light another fire.
    **Ember Cores ◆** come from hot fires and endurance milestones, and pay for the deepest upgrades.
+   Every fire also pays an **endurance bonus** with its ashes that grows smoothly with how long it burned,
+   and a ladder of 15 one-time milestones (1 hour to 6 days) adds rewards and unlocks new fuel.
 6. Fallen leaves and twigs collect in a basket over time. An emergency forage option means you can
    never get stuck without fuel.
 

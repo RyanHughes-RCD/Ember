@@ -108,7 +108,7 @@
     "description": "Dense, slow and dependable. Old oaks hide old things.",
     "icon": { "shape": "log", "palette": ["#1a0c06", "#4a2410", "#74401e", "#a4683a", "#d09a62"] },
     "burnSeconds": 10800, "heat": 12, "quality": 4, "essence": 1, "ashYield": 7,
-    "price": 70, "unlock": { "milestone": "m60" },
+    "price": 70, "unlock": { "milestone": "e04" },
     "loot": [
       { "item": "charcoal", "chance": 0.75, "min": 1, "max": 3 },
       { "item": "acorn_cap", "chance": 0.25, "min": 1, "max": 2 },
@@ -136,7 +136,7 @@
     "description": "A softly shining mushroom. Its flame is pale and strange.",
     "icon": { "shape": "mushroom", "palette": ["#0a1424", "#1a5a6a", "#2ea4a8", "#7ef0d8", "#e0fff4"] },
     "burnSeconds": 4500, "heat": 3, "quality": 8, "essence": 15, "ashYield": 3,
-    "price": 150, "unlock": { "milestone": "m360" },
+    "price": 150, "unlock": { "milestone": "e08" },
     "loot": [
       { "item": "luminescent_spores", "chance": 0.7, "min": 1, "max": 3 },
       { "item": "magic_dust", "chance": 0.3, "min": 1, "max": 2 },
@@ -164,7 +164,7 @@
     "description": "Heartwood from a tree older than memory. It burns for hours.",
     "icon": { "shape": "log", "palette": ["#140a1a", "#3e1e3a", "#6a3a52", "#b07a5a", "#ffd890"] },
     "burnSeconds": 32400, "heat": 20, "quality": 15, "essence": 20, "ashYield": 12,
-    "price": 1800, "unlock": { "milestone": "m1440" },
+    "price": 1800, "unlock": { "milestone": "e13" },
     "loot": [
       { "item": "charcoal", "chance": 0.8, "min": 2, "max": 4 },
       { "item": "spirit_fragment", "chance": 0.12, "min": 1, "max": 1 },

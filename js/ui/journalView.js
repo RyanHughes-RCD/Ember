@@ -3,6 +3,7 @@
 import { $, esc, fmtDur, fmtNum } from './util.js';
 import { iconUrl } from './icons.js';
 import { durationAt } from '../logic/fire.js';
+import { enduranceBonus } from '../logic/economy.js';
 
 export function rewardText(data, r = {}) {
   const parts = [];
@@ -29,6 +30,7 @@ export class JournalView {
     const s = this.game.state; const d = this.game.data;
     const cur = s.fire.status === 'burning' ? durationAt(s.fire, now) : 0;
     const longest = Math.max(s.records.longestFire, cur);
+    const eb = enduranceBonus(d, cur);
     const found = d.journal.filter((it) => s.discoveries[it.id]).length;
     const title = s.titles.length ? `<p class="desc" style="text-align:center;color:var(--gold)">— ${esc(s.titles[s.titles.length - 1])} —</p>` : '';
 
@@ -55,9 +57,10 @@ export class JournalView {
       <h3 class="section-title" style="margin:0 2px 6px">Fire Endurance</h3>
       <div class="records">
         <div class="record"><span>Current fire</span><b>${cur ? fmtDur(cur) : '—'}</b></div>
+        <div class="record"><span>Endurance bonus so far</span><b>${cur ? `✦ ${fmtNum(eb.sparks)}${eb.cores ? ` ◆ ${eb.cores}` : ''}` : '—'}</b></div>
         <div class="record"><span>Longest fire</span><b>${fmtDur(longest)}</b></div>
-        <div class="record"><span>Lifetime fire time</span><b>${fmtDur(s.records.totalFireTime)}</b></div>
         <div class="record"><span>Fires completed</span><b>${s.records.firesCompleted}</b></div>
+        <div class="record wide"><span>Lifetime fire time</span><b>${fmtDur(s.records.totalFireTime)}</b></div>
         <div class="record"><span>Materials burned</span><b>${fmtNum(s.records.materialsBurned)}</b></div>
         <div class="record"><span>Stoking actions</span><b>${fmtNum(s.records.stokes)}</b></div>
       </div>

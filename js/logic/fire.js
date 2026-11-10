@@ -13,6 +13,11 @@ export function remainingAt(fire, now) {
   return Math.max(0, fire.remaining - elapsed);
 }
 
+/** The flame colour right now ('red', …), or null for an ordinary fire. */
+export function tintAt(fire, now) {
+  return fire.status === 'burning' && fire.tint && fire.tint.until > now ? fire.tint.color : null;
+}
+
 export function durationAt(fire, now) {
   if (fire.status !== 'burning') return fire.totalDuration;
   const elapsed = Math.max(0, (now - fire.lastUpdated) / 1000);
@@ -126,7 +131,7 @@ export function stoke(state, data, selection, now, rng = Math.random) {
     Object.assign(fire, {
       id: newFireId(now), status: 'burning', remaining: 0, lastUpdated: now, litAt: now,
       totalDuration: 0, totalHeat: 0, totalQuality: 0, totalEssence: 0,
-      materialsCount: 0, materialsBurned: {}, stokes: 0,
+      materialsCount: 0, materialsBurned: {}, stokes: 0, tint: null,
     });
   }
 
@@ -142,6 +147,12 @@ export function stoke(state, data, selection, now, rng = Math.random) {
     fire.materialsCount += n;
     fire.materialsBurned[id] = (fire.materialsBurned[id] || 0) + n;
     state.records.materialsBurned += n;
+    const tint = data.materialById[id].flameTint;
+    if (tint) {
+      // the flames take this colour while the material burns; more of it keeps them that colour longer
+      const from = fire.tint && fire.tint.color === tint && fire.tint.until > now ? fire.tint.until : now;
+      fire.tint = { color: tint, until: from + m.burnSeconds * n * 1000 };
+    }
   }
   fire.lastUpdated = now;
   fire.stokes += 1;

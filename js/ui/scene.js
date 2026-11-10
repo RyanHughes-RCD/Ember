@@ -24,6 +24,24 @@ export async function loadSprites(base = './assets/sprites/') {
 
 const rand = (a, b) => a + Math.random() * (b - a);
 
+/** A red-flame copy of the flame sheet: each pixel is remapped by brightness onto a red ramp. */
+function recolorFlames(img) {
+  const c = document.createElement('canvas');
+  c.width = img.width; c.height = img.height;
+  const g = c.getContext('2d');
+  g.drawImage(img, 0, 0);
+  const d = g.getImageData(0, 0, c.width, c.height);
+  const ramp = [[110, 8, 16], [176, 16, 32], [224, 40, 40], [255, 84, 70], [255, 150, 130], [255, 214, 200]];
+  for (let i = 0; i < d.data.length; i += 4) {
+    if (!d.data[i + 3]) continue;
+    const l = (0.3 * d.data[i] + 0.55 * d.data[i + 1] + 0.15 * d.data[i + 2]) / 255;
+    const k = Math.max(0, Math.min(ramp.length - 1, Math.floor((l - 0.35) / 0.1)));
+    [d.data[i], d.data[i + 1], d.data[i + 2]] = ramp[k];
+  }
+  g.putImageData(d, 0, 0);
+  return c;
+}
+
 export class Scene {
   constructor(canvas, sprites) {
     this.canvas = canvas;
@@ -45,6 +63,9 @@ export class Scene {
     this.frameT = 0;
     this.stars = Array.from({ length: 40 }, () => ({ x: Math.random(), y: Math.random(), p: rand(0, 6) }));
     this.layout();
+    this.red = 0; // 0..1 eased mix toward red flames
+    this.redTarget = 0;
+    this.redFlames = recolorFlames(sprites.flames);
     this.tmp = document.createElement('canvas');
     this.tmp.width = FRAME_W; this.tmp.height = FRAME_H;
     this.tctx = this.tmp.getContext('2d');
@@ -86,7 +107,8 @@ export class Scene {
   stop() { this.running = false; }
 
   /** Called by the UI every tick. */
-  setFire({ status, intensity, heat, essence, quality }) {
+  setFire({ status, intensity, heat, essence, quality, tint }) {
+    if (tint !== undefined) this.redTarget = tint === 'red' ? 1 : 0;
     if (status === 'burning') {
       if (this.mode !== 'burning') { this.mode = 'burning'; this.shown = 0.2; }
     } else if (status === 'ash') {
@@ -129,7 +151,8 @@ export class Scene {
   spark(burst = false) {
     const magic = Math.random() < this.essence * 0.7;
     const golden = !magic && Math.random() < this.quality * 0.4;
-    const c = magic ? (Math.random() < 0.5 ? '#7ef0ff' : '#c48aff') : golden ? '#fff2a0' : (Math.random() < 0.5 ? '#ffb040' : '#ff7a2a');
+    let c = magic ? (Math.random() < 0.5 ? '#7ef0ff' : '#c48aff') : golden ? '#fff2a0' : (Math.random() < 0.5 ? '#ffb040' : '#ff7a2a');
+    if (Math.random() < this.red) c = Math.random() < 0.5 ? '#ff3a2e' : '#ff8070';
     this.particles.push({
       x: this.fx + rand(-8, 8) * (0.6 + this.shown * 0.5), y: this.fb - 12 - rand(0, 18) * this.shown,
       vx: rand(-6, 6), vy: -rand(14, burst ? 60 : 34), g: -2, life: rand(0.6, burst ? 1.8 : 1.4), age: 0, c, drag: 0.4, twinkle: magic || golden,
@@ -149,6 +172,7 @@ export class Scene {
     const frameDur = 0.16 - this.shown * 0.04;
     if (this.frameT > frameDur) { this.frameT = 0; this.frame = (this.frame + 1) % 3; }
 
+    this.red += (this.redTarget - this.red) * Math.min(1, dt * 1.5);
     const target = this.mode === 'burning' ? this.intensity : 0;
     this.shown += (target - this.shown) * Math.min(1, dt * 2.5);
     this.flare = Math.max(0, this.flare - dt * 1.2);
@@ -215,7 +239,8 @@ export class Scene {
       const r = 40 + 50 * light * (0.7 + this.heat * 0.6);
       const gl = c.createRadialGradient(this.fx, this.fb - 14, 2, this.fx, this.fb - 14, r);
       const mag = this.essence;
-      const col = mag > 0.35 ? `${Math.round(255 - mag * 120)},${Math.round(150 + mag * 40)},${Math.round(80 + mag * 150)}` : '255,150,60';
+      let col = mag > 0.35 ? [255 - mag * 120, 150 + mag * 40, 80 + mag * 150] : [255, 150, 60];
+      col = col.map((v, i) => Math.round(v + ([255, 46, 36][i] - v) * this.red)).join(',');
       gl.addColorStop(0, `rgba(${col},${0.55 * light})`);
       gl.addColorStop(0.4, `rgba(${col},${0.22 * light})`);
       gl.addColorStop(1, `rgba(${col},0)`);
@@ -286,9 +311,14 @@ export class Scene {
     tc.globalCompositeOperation = 'source-over';
     tc.clearRect(0, 0, FRAME_W, FRAME_H);
     tc.drawImage(this.s.flames, this.frame * FRAME_W, 0, FRAME_W, FRAME_H, 0, 0, FRAME_W, FRAME_H);
+    if (this.red > 0.001) {
+      tc.globalAlpha = this.red;
+      tc.drawImage(this.redFlames, this.frame * FRAME_W, 0, FRAME_W, FRAME_H, 0, 0, FRAME_W, FRAME_H);
+      tc.globalAlpha = 1;
+    }
     // fire colour responds to its characteristics
     tc.globalCompositeOperation = 'source-atop';
-    if (this.essence > 0.12) {
+    if (this.essence > 0.12 && this.red < 0.5) {
       tc.globalAlpha = Math.min(0.55, this.essence * 0.6);
       tc.fillStyle = '#58d8ff';
       tc.fillRect(0, 0, FRAME_W, FRAME_H * 0.7);
@@ -314,7 +344,7 @@ export class Scene {
       c.fillStyle = '#1a1716'; c.fillRect(x, y, 7, 4);
       c.fillStyle = '#3c3632'; c.fillRect(x + 1, y, 5, 3);
       c.fillStyle = '#5e5650'; c.fillRect(x + 1, y, 3, 1);
-      if (this.mode === 'burning') { c.fillStyle = 'rgba(255,140,60,0.35)'; c.fillRect(x + 2, y, 3, 1); }
+      if (this.mode === 'burning') { c.fillStyle = this.red > 0.5 ? 'rgba(255,60,50,0.4)' : 'rgba(255,140,60,0.35)'; c.fillRect(x + 2, y, 3, 1); }
     }
   }
 }

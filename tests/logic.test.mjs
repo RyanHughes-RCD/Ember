@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { buildData } from '../js/data.js';
 import { createNewSave, migrate, SaveStore, emptyFire } from '../js/logic/state.js';
-import { settle, stoke, collectAsh, remainingAt, canStokeNow, durationAt } from '../js/logic/fire.js';
+import { settle, stoke, collectAsh, remainingAt, canStokeNow, durationAt, tintAt } from '../js/logic/fire.js';
 import { generateRewards } from '../js/logic/rewards.js';
 import {
   buyMaterial, buyUpgrade, sellAllTreasures, enduranceBonus, accrueGathering, pickUp, nextGatherIn, canForage, forage, isUnlocked,
@@ -271,6 +271,40 @@ test('foraging mixes twigs in at their own rate and resumes after pickups', () =
   assert.equal(s.inventory.twigs, before + 1);
   assert.equal(pickUp(s, data, twig.key).ok, false, 'cannot pick the same item twice');
   assert.equal(s.gathering.spawns.length, 2);
+});
+
+test('foraging occasionally turns up a Wooden Effigy', () => {
+  const s = createNewSave(data, T0);
+  let effigies = 0; let total = 0;
+  const rng = seeded(21);
+  for (let day = 0; day < 400; day++) {
+    accrueGathering(s, data, T0 + (day + 1) * 6 * HOUR, rng);
+    for (const o of [...s.gathering.spawns]) {
+      total++;
+      if (o.id === 'wooden_effigy') effigies++;
+      pickUp(s, data, o.key);
+    }
+  }
+  const rate = effigies / total;
+  assert.ok(rate > 0.02 && rate < 0.07, `about 4% of finds (${(rate * 100).toFixed(1)}%)`);
+  assert.ok(s.seenMaterials.wooden_effigy, 'picking one up adds it to your materials');
+});
+
+test('a Wooden Effigy makes the fire burn red while it burns', () => {
+  const s = createNewSave(data, T0);
+  s.upgrades.capacity = 6;
+  s.inventory.wooden_effigy = 2;
+  const at = T0 + 30_000;
+  assert.equal(tintAt(s.fire, at), null);
+  assert.equal(stoke(s, data, { wooden_effigy: 1, pine_log: 1 }, at).ok, true);
+  assert.equal(tintAt(s.fire, at + 29 * MIN), 'red');
+  assert.equal(tintAt(s.fire, at + 31 * MIN), null, 'back to orange after its 30 minutes');
+  // a second one while still red keeps it red for another 30 minutes
+  assert.equal(stoke(s, data, { wooden_effigy: 1 }, at + 60 * MIN + 2 * HOUR - 50 * MIN).ok, true);
+  const t2 = at + 60 * MIN + 2 * HOUR - 50 * MIN;
+  assert.equal(tintAt(s.fire, t2 + 29 * MIN), 'red');
+  assert.equal(effectiveMaterial(s, data, 'wooden_effigy').burnSeconds, 1800);
+  assert.equal(buyMaterial(s, data, 'wooden_effigy').ok, false, 'not sold in the shop');
 });
 
 test('old basket saves become spawns', () => {

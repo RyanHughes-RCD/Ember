@@ -234,6 +234,16 @@ const SHAPES = {
     }
     P.set(g, 13, 4, 5); P.set(g, 3, 12, 5);
   },
+  effigy(g) {
+    P.line(g, 3, 7, 12, 7, 3, 2); // arms
+    P.rect(g, 6, 6, 9, 11, (x) => (x <= 6 ? 4 : x <= 8 ? 3 : 2)); // body
+    P.rect(g, 5, 11, 6, 15, (x) => (x === 5 ? 3 : 2)); // legs
+    P.rect(g, 9, 11, 10, 15, (x) => (x === 9 ? 3 : 2));
+    P.ellipse(g, 7.5, 3.2, 2.6, 2.6); // head
+    P.set(g, 6, 3, 1); P.set(g, 8, 3, 1); // carved eyes
+    P.line(g, 6, 9, 9, 9, 2); // carved belt
+    P.set(g, 6, 2, 5);
+  },
   // ---- UI-only shapes
   flame(g) {
     P.poly(g, [[8, 0.5], [12.5, 7], [13, 11], [10.5, 14.5], [5.5, 14.5], [3, 11], [4, 6], [6, 8]]);

@@ -172,6 +172,12 @@ function addSpawn(g, id, at, rng) {
   g.spawns.push({ key: `${at.toString(36)}-${g.seq}`, id, x: pos.x, y: pos.y, flip: rng() < 0.5, at });
 }
 
+/** Occasionally a fallen item is something rarer (e.g. a Wooden Effigy). */
+function rareFind(cfg, rng) {
+  for (const f of cfg.finds || []) if (rng() < f.chance) return f.id;
+  return null;
+}
+
 /** Advance foraging to `now`, spawning items in the order their timers complete. */
 export function accrueGathering(state, data, now, rng = Math.random) {
   const g = state.gathering;
@@ -204,7 +210,7 @@ export function accrueGathering(state, data, now, rng = Math.random) {
     t += step * 1000;
     if (step === wait) {
       g.accum[best.id] = Math.max(0, g.accum[best.id] - 1);
-      addSpawn(g, best.id, Math.round(t), rng);
+      addSpawn(g, rareFind(cfg, rng) || best.id, Math.round(t), rng);
     }
   }
   g.lastUpdated = now;

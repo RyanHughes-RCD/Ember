@@ -204,6 +204,11 @@ export class ForageView {
     const res = this.game.act((s, d) => pickUp(s, d, key));
     if (!res.ok) return;
     sfx.pick();
+    const def = this.data.byId[spawn.id];
+    if (def.rarity !== 'common') {
+      sfx.reveal(def.rarity);
+      this.ui.toast(`You found a ${def.name}!`, 'milestone', spawn.id);
+    }
     if (navigator.vibrate) navigator.vibrate(8);
     this.pops.push({ id: spawn.id, x: p.x, y: p.y, flip: spawn.flip, t: performance.now() / 1000 });
     this.floatLabel(btn.offsetLeft, btn.offsetTop - 10, `+1 ${this.data.byId[spawn.id].name}`);
@@ -279,7 +284,8 @@ export class ForageView {
       c.globalAlpha = Math.min(1, k * 2);
       this.drawItem(c, o.id, dx, dy, o.flip);
       // an occasional glint so items read as tappable
-      const phase = (t * 0.6 + o.x * 7 + o.y * 3) % 4;
+      const rare = this.data.byId[o.id].rarity !== 'common';
+      const phase = (t * (rare ? 1.6 : 0.6) + o.x * 7 + o.y * 3) % 4;
       if (k >= 1 && phase < 0.25) {
         c.globalAlpha = 1 - phase * 4;
         c.fillStyle = '#fff4c8';

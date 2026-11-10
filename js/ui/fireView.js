@@ -4,7 +4,7 @@ import { $, esc, fmtClock, fmtDur, fmtStat } from './util.js';
 import { iconUrl, uiIconUrl } from './icons.js';
 import { sfx } from './audio.js';
 import {
-  remainingAt, durationAt, canStokeNow, stoke, selectionSeconds,
+  remainingAt, durationAt, canStokeNow, stoke, selectionSeconds, tintAt,
 } from '../logic/fire.js';
 import { getCapacity, getThreshold, effectiveMaterial } from '../logic/stats.js';
 import { fireAverages } from '../logic/rewards.js';
@@ -148,6 +148,7 @@ export class FireView {
       heat: Math.min(1, avg.heat / 16),
       essence: Math.min(1, avg.essence / 20),
       quality: Math.min(1, avg.quality / 12),
+      tint: tintAt(fire, now),
     });
 
     // Rebuild the panel only when its structure changes (not every tick).

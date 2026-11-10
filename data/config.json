@@ -27,6 +27,9 @@
   "gathering": {
     "description": "Twigs and leaves fall onto the forage patch over time, even while you are away. At most maxSpawns lie there at once; while it is full the timers pause.",
     "maxSpawns": 6,
+    "finds": [
+      { "id": "wooden_effigy", "chance": 0.04, "description": "Rare: any item that falls has this chance to be one of these instead." }
+    ],
     "sources": [
       { "id": "dry_leaves", "everySeconds": 3000 },
       { "id": "twigs", "everySeconds": 7200 }

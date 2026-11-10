@@ -3,7 +3,7 @@
     "id": "dry_leaves", "name": "Dry Leaves", "category": "flora", "rarity": "common",
     "description": "A crackling handful. Gone in a moment, but always easy to find.",
     "icon": { "shape": "leaf", "palette": ["#2a1608", "#6e3a14", "#a8622a", "#d49a4a", "#f0c878"] },
-    "burnSeconds": 1200, "heat": 2, "quality": 1, "essence": 0, "ashYield": 1,
+    "burnSeconds": 900, "heat": 2, "quality": 1, "essence": 0, "ashYield": 1,
     "price": 2, "unlock": null,
     "loot": [
       { "item": "fine_ash", "chance": 0.8, "min": 1, "max": 2 },
@@ -15,7 +15,7 @@
     "id": "twigs", "name": "Twigs", "category": "wood", "rarity": "common",
     "description": "Dry kindling snapped from low branches.",
     "icon": { "shape": "twigs", "palette": ["#24140a", "#5a3418", "#8a5a2e", "#b88a52", "#d8b078"] },
-    "burnSeconds": 1800, "heat": 4, "quality": 1, "essence": 0, "ashYield": 2,
+    "burnSeconds": 1200, "heat": 4, "quality": 1, "essence": 0, "ashYield": 2,
     "price": 4, "unlock": null,
     "loot": [
       { "item": "fine_ash", "chance": 0.6, "min": 1, "max": 2 },

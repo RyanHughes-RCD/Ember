@@ -95,7 +95,7 @@ js/
 assets/
   source/               Original sprite art (forest, campfire)
   sprites/              Native-resolution sprites derived by tools/build_sprites.py
-  fonts/                Self-hosted Pixelify Sans + Silkscreen digits (SIL OFL)
+  fonts/                Self-hosted Silkscreen (SIL OFL)
   icons/                App icons
 tools/
   build_sprites.py      Rebuilds assets/sprites from assets/source (needs Pillow + numpy)

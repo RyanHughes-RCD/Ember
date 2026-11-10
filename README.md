@@ -101,6 +101,7 @@ assets/
   icons/                App icons
 tools/
   build_sprites.py      Rebuilds assets/sprites from assets/source (needs Pillow + numpy)
+  build_icon.py         Rebuilds the app icons in assets/icons (needs Pillow)
   icon-preview.html     Dev page showing every item icon
 tests/                  Unit tests + end-to-end playthrough
 ```

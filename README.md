@@ -24,7 +24,8 @@ so it runs directly on GitHub Pages.
    **Ember Cores ◆** come from hot fires and endurance milestones, and pay for the deepest upgrades.
    Every fire also pays an **endurance bonus** with its ashes that grows smoothly with how long it burned,
    and a ladder of 15 one-time milestones (1 hour to 6 days) adds rewards and unlocks new fuel.
-6. Fallen leaves and twigs collect in a basket over time. An emergency forage option means you can
+6. Twigs and leaves fall onto a small grassy patch over time, even while you're away. Tap **FORAGE**
+   and tap each one to pick it up; up to 6 can lie there at once. An emergency fallback means you can
    never get stuck without fuel.
 
 ## Running locally

@@ -130,6 +130,33 @@ img.px-icon, canvas, .pixel { image-rendering: pixelated; image-rendering: crisp
   background: linear-gradient(rgba(8, 5, 4, 0), rgba(8, 5, 4, 0.78) 34px, rgba(8, 5, 4, 0.92));
 }
 
+/* ------------------------------------------------------------ forage */
+.forage {
+  position: absolute; inset: 0; z-index: 20; display: flex; flex-direction: column;
+  background: #0a0705; animation: fadein 0.2s ease-out;
+}
+.forage .topbar { background: rgba(8, 6, 4, 0.9); }
+.forage-stage { position: relative; flex: 1; min-height: 0; }
+#forage-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.forage-info {
+  text-align: center; font-size: 12px; color: var(--muted); line-height: 1.6;
+  padding: 10px 12px calc(14px + var(--safe-b)); background: rgba(8, 6, 4, 0.92); border-top: 2px solid #1e1510;
+}
+.forage-info .have { color: var(--text); }
+.forage-float {
+  position: absolute; transform: translate(-50%, -100%); pointer-events: none; white-space: nowrap;
+  color: var(--gold); font-size: 13px; text-shadow: 0 2px 0 #000, 0 0 6px #000; animation: floatup 1s ease-out forwards; z-index: 2;
+}
+@keyframes floatup { to { opacity: 0; transform: translate(-50%, -260%); } }
+.spawn-hit {
+  position: absolute; width: 64px; height: 64px; transform: translate(-50%, -50%);
+  background: none; border: 0; padding: 0; border-radius: 50%; cursor: pointer; z-index: 1;
+}
+.spawn-hit:focus-visible { outline: 2px dashed var(--gold); outline-offset: -6px; }
+.tray-item.forage-btn { border-color: #3e5a30; }
+.tray-item.forage-btn.has { border-color: var(--good); box-shadow: 0 0 10px rgba(138, 208, 112, 0.25); }
+.tray-item.forage-btn .nm { color: var(--good); }
+
 /* ------------------------------------------------------------ pages (opened from the menu) */
 .pages {
   position: absolute; inset: 0; z-index: 20; overflow-y: auto; -webkit-overflow-scrolling: touch;
@@ -182,8 +209,7 @@ img.px-icon, canvas, .pixel { image-rendering: pixelated; image-rendering: crisp
 .tray { display: flex; gap: 6px; overflow-x: auto; margin-top: 10px; padding-bottom: 2px; scrollbar-width: none; }
 .tray::-webkit-scrollbar { display: none; }
 .tray .tray-item { flex: 0 0 68px; }
-.tray-item.basket-btn { border-style: dashed; border-color: var(--line-hi); }
-.tray-item.basket-btn.has { border-color: var(--good); }
+
 .tray-item {
   position: relative; border: 2px solid var(--line); border-radius: 3px; background: var(--panel);
   padding: 6px 2px 4px; text-align: center; cursor: pointer; min-height: 78px;
@@ -208,10 +234,6 @@ img.px-icon, canvas, .pixel { image-rendering: pixelated; image-rendering: crisp
   border: 2px solid var(--line); border-radius: 3px; background: var(--panel); padding: 10px;
   box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.03);
 }
-.basket { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
-.basket img { width: 32px; height: 32px; }
-.basket .txt { flex: 1; font-size: 13px; color: var(--muted); }
-.basket .txt b { color: var(--text); font-weight: 600; }
 
 .burned { margin-top: 12px; }
 .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }

@@ -25,14 +25,15 @@
     }
   },
   "gathering": {
-    "description": "Fallen fuel collects in a basket near the fire, even while you are away.",
+    "description": "Twigs and leaves fall onto the forage patch over time, even while you are away. At most maxSpawns lie there at once; while it is full the timers pause.",
+    "maxSpawns": 6,
     "sources": [
-      { "id": "dry_leaves", "everySeconds": 3000, "cap": 8 },
-      { "id": "twigs", "everySeconds": 7200, "cap": 5 }
+      { "id": "dry_leaves", "everySeconds": 3000 },
+      { "id": "twigs", "everySeconds": 7200 }
     ]
   },
   "forage": {
-    "description": "Emergency forage, offered only when you have no fuel and cannot afford any.",
+    "description": "Emergency: if you have no fuel and cannot afford any, this kindling appears on the forage patch at once.",
     "grant": { "dry_leaves": 3, "twigs": 2 }
   },
   "rewards": {

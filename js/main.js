@@ -13,6 +13,7 @@ import { FireView } from './ui/fireView.js';
 import { MaterialsView } from './ui/materialsView.js';
 import { JournalView, rewardText } from './ui/journalView.js';
 import { UpgradesView } from './ui/upgradesView.js';
+import { ForageView } from './ui/forageView.js';
 
 const ui = {
   view: 'fire',
@@ -20,7 +21,7 @@ const ui = {
   toast, bump, go, showItem, openSift: () => openSift(),
 };
 
-let game; let scene; let fireView; let materialsView; let journalView; let upgradesView;
+let game; let scene; let fireView; let materialsView; let journalView; let upgradesView; let forageView;
 
 // ------------------------------------------------------------ toasts & small helpers
 
@@ -50,17 +51,24 @@ function renderWallet() {
 
 const PAGE_TITLES = { materials: 'Materials', journal: 'Journal', upgrades: 'Upgrades' };
 
-/** 'fire' shows the campsite alone; anything else opens that page over it. */
+/** 'fire' shows the campsite alone; 'forage' opens the grassy patch; anything else opens that page over it. */
 function go(view, sub) {
   ui.view = view;
-  const page = view !== 'fire';
+  const page = view !== 'fire' && view !== 'forage';
   $('#pages').hidden = !page;
+  $('#forage').hidden = view !== 'forage';
+  if (view === 'forage') {
+    scene.stop();
+    forageView.open();
+  } else {
+    forageView.close();
+  }
   if (page) {
     $('#page-title').textContent = PAGE_TITLES[view];
     $$('#pages .view').forEach((v) => v.classList.toggle('active', v.id === `view-${view}`));
     $('#pages').scrollTop = 0;
     scene.stop();
-  } else {
+  } else if (view === 'fire') {
     scene.layout();
     scene.start();
   }
@@ -314,6 +322,7 @@ function tick() {
   const now = game.now();
   renderWallet();
   fireView.update(now);
+  if (ui.view === 'forage') forageView.update();
   if (now - lastSlow > 1000) {
     lastSlow = now;
     renderDots();
@@ -333,9 +342,11 @@ async function boot() {
     materialsView = new MaterialsView(game, ui);
     journalView = new JournalView(game, ui);
     upgradesView = new UpgradesView(game, ui);
+    forageView = new ForageView(game, ui);
 
     $('#btn-menu').addEventListener('click', () => { sfx.unlock(); sfx.tap(); showMenu(); });
     $('#btn-back').addEventListener('click', () => { sfx.tap(); go('fire'); });
+    $('#forage-back').addEventListener('click', () => { sfx.tap(); go('fire'); });
     window.addEventListener('resize', () => scene.layout());
     $('#sheet').addEventListener('click', (e) => { if (e.target.id === 'sheet' || e.target.closest('.sheet-close')) closeSheet(); });
     $('#btn-continue').addEventListener('click', () => { sfx.tap(); closeReveal(); });
@@ -354,6 +365,7 @@ async function boot() {
         game.sync();
         game.tick();
         if (ui.view === 'fire') scene.start();
+        if (ui.view === 'forage') forageView.update();
         renderAll();
       }
     });

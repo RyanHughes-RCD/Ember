@@ -186,6 +186,21 @@ function check(cond, msg) {
   check(s.fire.status === 'burning' && s.fire.materialsCount === 1, 'new fire lit, progress preserved');
   check(s.upgrades.capacity === 2 && Object.keys(s.discoveries).length > 0, 'upgrades and discoveries persisted');
 
+  console.log('Forage');
+  await page.click('.tray-item[data-act="forage"]');
+  check(await page.isVisible('#forage-canvas'), 'FORAGE opens the grassy patch');
+  const spawns = (await save(page)).gathering.spawns;
+  check(spawns.length === 6, `patch filled to the 6-item limit while away (${spawns.length})`);
+  check(spawns.every((o) => o.id === 'dry_leaves' || o.id === 'twigs'), 'only twigs and leaves spawn');
+  const first = spawns[0];
+  const invBeforePick = (await save(page)).inventory[first.id] || 0;
+  await page.click(`.spawn-hit[data-key="${first.key}"]`);
+  const sPick = await save(page);
+  check(sPick.inventory[first.id] === invBeforePick + 1 && sPick.gathering.spawns.length === 5, 'tapping an item picks it up');
+  check((await page.$$('.spawn-hit')).length === 5, 'picked item leaves the patch');
+  await page.click('#forage-back');
+  check(await page.isVisible('#stoke-btn'), 'back returns to the fire');
+
   console.log('Shop, satchel and journal render');
   await nav(page, 'materials');
   await page.click('.subtab[data-sub="satchel"]');

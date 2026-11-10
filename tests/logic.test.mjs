@@ -7,7 +7,7 @@ import { createNewSave, migrate, SaveStore, emptyFire } from '../js/logic/state.
 import { settle, stoke, collectAsh, remainingAt, canStokeNow, durationAt } from '../js/logic/fire.js';
 import { generateRewards } from '../js/logic/rewards.js';
 import {
-  buyMaterial, buyUpgrade, sellAllTreasures, enduranceBonus, accrueGathering, collectBasket, canForage, forage, isUnlocked,
+  buyMaterial, buyUpgrade, sellAllTreasures, enduranceBonus, accrueGathering, pickUp, nextGatherIn, canForage, forage, isUnlocked,
 } from '../js/logic/economy.js';
 import { getCapacity, getThreshold, effectiveMaterial } from '../js/logic/stats.js';
 
@@ -245,24 +245,50 @@ test('endurance bonus is a smooth curve, granted once with the ashes', () => {
   assert.equal(s.sparks, sparks + expected.sparks, 'not granted twice');
 });
 
-test('passive gathering accrues offline, caps, and collects', () => {
+test('foraging spawns items offline at the basket rates, capped at 6 in total', () => {
   const s = createNewSave(data, T0);
-  accrueGathering(s, data, T0 + 5 * HOUR);
-  const got = collectBasket(s, data, T0 + 5 * HOUR);
-  assert.equal(got.dry_leaves, 6);
-  assert.equal(got.twigs, 2);
-  accrueGathering(s, data, T0 + 200 * HOUR);
-  const got2 = collectBasket(s, data, T0 + 200 * HOUR);
-  assert.equal(got2.dry_leaves, 8);
-  assert.equal(got2.twigs, 5);
+  accrueGathering(s, data, T0 + 5 * HOUR, seeded(4));
+  const ids = s.gathering.spawns.map((o) => o.id).sort();
+  // leaves every 50m, twigs every 2h: L L T L L T fills the patch by the 4-hour mark
+  assert.deepEqual(ids, ['dry_leaves', 'dry_leaves', 'dry_leaves', 'dry_leaves', 'twigs', 'twigs']);
+  accrueGathering(s, data, T0 + 200 * HOUR, seeded(5));
+  assert.equal(s.gathering.spawns.length, 6, 'never more than 6 on the patch');
+  assert.equal(nextGatherIn(s, data), null, 'timers pause while full');
+  for (const o of s.gathering.spawns) {
+    assert.ok(o.x >= 0.1 && o.x <= 0.9 && o.y >= 0.1 && o.y <= 0.9, 'inside the patch');
+  }
+});
+
+test('foraging mixes twigs in at their own rate and resumes after pickups', () => {
+  const s = createNewSave(data, T0);
+  accrueGathering(s, data, T0 + 2 * HOUR + MIN, seeded(6));
+  const count = (id) => s.gathering.spawns.filter((o) => o.id === id).length;
+  assert.equal(count('dry_leaves'), 2);
+  assert.equal(count('twigs'), 1);
+  const before = s.inventory.twigs;
+  const twig = s.gathering.spawns.find((o) => o.id === 'twigs');
+  assert.equal(pickUp(s, data, twig.key).ok, true);
+  assert.equal(s.inventory.twigs, before + 1);
+  assert.equal(pickUp(s, data, twig.key).ok, false, 'cannot pick the same item twice');
+  assert.equal(s.gathering.spawns.length, 2);
+});
+
+test('old basket saves become spawns', () => {
+  const s = createNewSave(data, T0);
+  delete s.gathering.spawns;
+  s.gathering.accum = { dry_leaves: 8, twigs: 2.5 };
+  accrueGathering(s, data, T0, seeded(7));
+  assert.equal(s.gathering.spawns.length, 6);
+  assert.ok(s.gathering.accum.dry_leaves < 1 && s.gathering.accum.twigs < 1);
 });
 
 test('player can never be locked out of restarting', () => {
   const s = createNewSave(data, T0);
   s.fire.status = 'cold'; s.inventory = {}; s.sparks = 0;
   assert.equal(canForage(s, data), true);
-  assert.equal(forage(s, data).ok, true);
+  assert.equal(forage(s, data, T0, seeded(8)).ok, true);
   assert.equal(canForage(s, data), false);
+  for (const o of [...s.gathering.spawns]) pickUp(s, data, o.key);
   assert.equal(stoke(s, data, { twigs: 1 }, T0).ok, true, 'lighting a cold fire ignores the threshold');
   assert.equal(s.fire.status, 'burning');
 });

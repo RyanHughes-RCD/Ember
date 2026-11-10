@@ -47,7 +47,7 @@ export function createNewSave(data, now) {
     milestones: {}, // { milestoneId: achievedAt }
     unlocks: {}, // shop unlocks granted by milestones
     titles: [],
-    gathering: { lastUpdated: now, accum: {} },
+    gathering: { lastUpdated: now, accum: {}, spawns: [], seq: 0 },
     settings: { sound: true },
     tutorial: { intro: false },
   };

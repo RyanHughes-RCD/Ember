@@ -1,4 +1,4 @@
-// Campfire screen: HUD, characteristics, slots, material tray, basket, ash phase.
+// Campfire screen: countdown, slots, the fuel strip (with the FORAGE button) and the ash phase.
 
 import { $, esc, fmtClock, fmtDur, fmtStat } from './util.js';
 import { iconUrl, uiIconUrl } from './icons.js';
@@ -9,7 +9,7 @@ import {
 import { getCapacity, getThreshold, effectiveMaterial } from '../logic/stats.js';
 import { fireAverages } from '../logic/rewards.js';
 import {
-  basketContents, collectBasket, nextGatherIn, canForage, forage, burnableCount,
+  spawnCount, nextGatherIn, burnableCount,
 } from '../logic/economy.js';
 
 export class FireView {
@@ -56,8 +56,7 @@ export class FireView {
     else if (act === 'clear') { this.selection = {}; sfx.deselect(); this.render(); }
     else if (act === 'stoke') this.doStoke();
     else if (act === 'sift') this.ui.openSift();
-    else if (act === 'basket') this.collectBasket();
-    else if (act === 'forage') this.doForage();
+    else if (act === 'forage') this.ui.go('forage');
     else if (act === 'shop') this.ui.go('materials', 'shop');
     else if (act === 'detail') this.ui.showItem(id);
   }
@@ -111,27 +110,6 @@ export class FireView {
     this.render();
   }
 
-  collectBasket() {
-    const got = this.game.act((s, d, now) => ({ got: collectBasket(s, d, now) })).got;
-    const parts = Object.entries(got).map(([id, n]) => `${n} ${this.data.byId[id].name}`);
-    if (!parts.length) {
-      this.ui.toast('Nothing in the basket yet.', '', 'basket');
-    } else {
-      sfx.coin();
-      this.ui.toast(`Gathered ${parts.join(' and ')}.`, '', 'basket');
-    }
-    this.render();
-  }
-
-  doForage() {
-    const r = this.game.act((s, d) => forage(s, d));
-    if (r.ok) {
-      sfx.coin();
-      this.ui.toast('You scrape together some kindling from the forest floor.', '', 'basket');
-    }
-    this.render();
-  }
-
   // ------------------------------------------------------------ rendering
 
   /** Called every tick for live numbers; rebuilds the panel only when needed. */
@@ -182,17 +160,23 @@ export class FireView {
       if (btn && btn.dataset.waiting) btn.textContent = `STOKE IN ${wait}`;
       const after = $('#stoke-after', this.panel);
       if (after) after.textContent = fmtClock(rem + selectionSeconds(s, this.data, this.selection));
-      const bn = $('#basket-next', this.panel);
-      const nextIn = nextGatherIn(s, this.data);
-      if (bn) bn.textContent = nextIn === null ? 'Full' : fmtClock(nextIn);
+      const fn = $('#forage-next', this.panel);
+      if (fn) fn.textContent = this.forageSub();
     }
+  }
+
+  forageSub() {
+    const n = spawnCount(this.state);
+    if (n) return `${n} here`;
+    const next = nextGatherIn(this.state, this.data);
+    return next === null ? '' : fmtClock(next);
   }
 
   panelKey(now) {
     const s = this.state;
     return [
       s.fire.status, this.ui.revealing, canStokeNow(s, this.data, now), getCapacity(s, this.data),
-      Object.entries(basketContents(s, this.data)).join(','), s.rev,
+      spawnCount(s), s.rev,
     ].join('|');
   }
 
@@ -250,28 +234,23 @@ export class FireView {
         </button>`;
     }).join('');
 
-    // passive basket: a tile at the start of the fuel strip
-    const basket = basketContents(s, d);
-    const bCount = Object.values(basket).reduce((x, y) => x + y, 0);
-    const nextIn = nextGatherIn(s, d);
-    const basketHtml = `<button class="tray-item basket-btn${bCount ? ' has' : ''}" data-act="basket" aria-label="Collect gathered fuel">
-        ${bCount ? `<span class="qty">+${bCount}</span>` : ''}
-        <img class="px-icon" src="${uiIconUrl('basket')}" alt="">
-        <span class="nm">${bCount ? 'Collect' : 'Basket'}</span><span class="bt" id="basket-next">${nextIn === null ? 'Full' : fmtClock(nextIn)}</span>
+    // FORAGE: opens the grassy patch where fallen twigs and leaves can be picked up
+    const fCount = spawnCount(s);
+    const forageHtml = `<button class="tray-item forage-btn${fCount ? ' has' : ''}" data-act="forage" aria-label="Forage for twigs and leaves">
+        ${fCount ? `<span class="qty">${fCount}</span>` : ''}
+        <img class="px-icon" src="${iconUrl(d.byId.dry_leaves)}" alt="">
+        <span class="nm">FORAGE</span><span class="bt" id="forage-next">${this.forageSub()}</span>
       </button>`;
 
     const noFuel = burnableCount(s, d) === 0;
-    const forageBtn = canForage(s, d)
-      ? '<button class="btn btn-wide" data-act="forage" style="margin-top:10px">FORAGE FOR KINDLING</button>' : '';
 
     this.panel.innerHTML = `
       <div class="slots-row">${slots}</div>
       <div class="slots-meta">${adds
     ? `<span class="plus">+${fmtClock(adds)}</span> → <b id="${lighting ? '' : 'stoke-after'}">${fmtClock(after)}</b>`
-    : noFuel ? 'No fuel left — <a href="#" data-act="shop" style="color:var(--amber)">visit the shop</a>' : ''}</div>
+    : noFuel ? 'No fuel left — <a href="#" data-act="forage" style="color:var(--good)">forage</a> or <a href="#" data-act="shop" style="color:var(--amber)">visit the shop</a>' : ''}</div>
       <button id="stoke-btn" class="btn btn-primary btn-wide${btnOk ? ' glow' : ''}" data-act="stoke" ${!lighting && !ready ? 'data-waiting="1"' : ''} ${btnOk ? '' : 'disabled'}>${label}</button>
-      ${forageBtn}
-      <div class="tray">${basketHtml}${tray}</div>`;
+      <div class="tray">${forageHtml}${tray}</div>`;
     // keep the fire clear of the controls (only ever grows, so the fire never jumps around)
     const hPx = this.panel.offsetHeight;
     if (hPx > (this.maxPanel || 0) + 4) { this.maxPanel = hPx; this.scene.layout(hPx - 20); }

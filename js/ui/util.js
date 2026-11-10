@@ -22,7 +22,7 @@ export function fmtDur(sec, { short = false } = {}) {
   const m = Math.floor((s % 3600) / 60);
   const r = s % 60;
   if (d) return `${d}d ${h}h`;
-  if (h) return short ? `${h}h` : `${h}h ${m}m`;
+  if (h) return short && !m ? `${h}h` : `${h}h ${m}m`;
   if (m) return short || m >= 10 ? `${m}m` : `${m}m ${r}s`;
   return `${r}s`;
 }

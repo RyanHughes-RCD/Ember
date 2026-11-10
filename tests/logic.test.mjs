@@ -47,11 +47,11 @@ test('cannot stoke above threshold; can at/below it', () => {
   const r1 = stoke(s, data, { pine_log: 1 }, T0);
   assert.equal(r1.ok, false);
   assert.equal(s.inventory.pine_log, 3, 'nothing consumed on a refused stoke');
-  const at = T0 + 30_000; // remaining exactly 300
+  const at = T0 + 30_000; // remaining exactly at the threshold
   const r2 = stoke(s, data, { pine_log: 1 }, at);
   assert.equal(r2.ok, true);
   assert.equal(s.inventory.pine_log, 2);
-  assert.equal(Math.round(remainingAt(s.fire, at)), 300 + 900);
+  assert.equal(Math.round(remainingAt(s.fire, at)), 2700 + 5400);
 });
 
 test('capacity limits the number of individual items', () => {
@@ -80,13 +80,13 @@ test('insufficient inventory is refused without consuming anything', () => {
 
 test('offline expiry extinguishes once, at the right time, and stores rewards', () => {
   const s = createNewSave(data, T0);
-  stoke(s, data, { pine_log: 1 }, T0 + 30_000); // 300 + 900 = 1200s left
+  stoke(s, data, { pine_log: 1 }, T0 + 30_000); // 2700 + 5400 = 8100s left
   const events = settle(s, data, T0 + 10 * HOUR, seeded(3));
   assert.ok(events.some((e) => e.type === 'extinguished'));
   assert.equal(s.fire.status, 'ash');
   assert.ok(s.pendingAsh);
-  assert.equal(Math.round(s.pendingAsh.duration), 30 + 1200);
-  assert.equal(Math.round(s.records.longestFire), 1230);
+  assert.equal(Math.round(s.pendingAsh.duration), 30 + 8100);
+  assert.equal(Math.round(s.records.longestFire), 8130);
   assert.equal(s.records.firesCompleted, 1);
   // settling again (e.g. after a refresh) must not regenerate
   const before = JSON.stringify(s.pendingAsh);
@@ -102,7 +102,7 @@ test('refresh during an active fire keeps an accurate countdown', () => {
   store.save(s);
   const { state } = store.load(data, T0 + 10 * MIN);
   settle(state, data, T0 + 10 * MIN);
-  assert.equal(Math.round(remainingAt(state.fire, T0 + 10 * MIN)), 1200 - (10 * 60 - 30));
+  assert.equal(Math.round(remainingAt(state.fire, T0 + 10 * MIN)), 8100 - (10 * 60 - 30));
   assert.equal(Math.round(durationAt(state.fire, T0 + 10 * MIN)), 600);
 });
 
@@ -110,17 +110,17 @@ test('refresh during pending ash keeps rewards and never duplicates them', () =>
   const store = new SaveStore('t', new MemStorage());
   const s = createNewSave(data, T0);
   stoke(s, data, { pine_log: 1 }, T0 + 30_000);
-  settle(s, data, T0 + 2 * HOUR, seeded(5));
+  settle(s, data, T0 + 5 * HOUR, seeded(5));
   store.save(s);
   const pending = JSON.stringify(s.pendingAsh);
-  const { state: s2 } = store.load(data, T0 + 3 * HOUR);
-  settle(s2, data, T0 + 3 * HOUR);
+  const { state: s2 } = store.load(data, T0 + 6 * HOUR);
+  settle(s2, data, T0 + 6 * HOUR);
   assert.equal(JSON.stringify(s2.pendingAsh), pending);
-  const got = collectAsh(s2, data, T0 + 3 * HOUR);
+  const got = collectAsh(s2, data, T0 + 6 * HOUR);
   store.save(s2);
   assert.ok(got);
-  assert.equal(collectAsh(s2, data, T0 + 3 * HOUR), null, 'second collect is a no-op');
-  const { state: s3 } = store.load(data, T0 + 4 * HOUR);
+  assert.equal(collectAsh(s2, data, T0 + 6 * HOUR), null, 'second collect is a no-op');
+  const { state: s3 } = store.load(data, T0 + 7 * HOUR);
   assert.equal(s3.pendingAsh, null);
   assert.equal(s3.fire.status, 'cold');
   for (const r of got.rewards) assert.ok(s3.discoveries[r.id].count >= r.qty);
@@ -181,10 +181,10 @@ test('upgrades: purchase, cost, capacity and effects', () => {
   assert.equal(getCapacity(s, data), 10);
   assert.equal(buyUpgrade(s, data, 'capacity').ok, false, 'maxed');
   buyUpgrade(s, data, 'seasoned_wood');
-  assert.equal(effectiveMaterial(s, data, 'pine_log').burnSeconds, 990);
-  assert.equal(effectiveMaterial(s, data, 'glowcap').burnSeconds, 720);
+  assert.equal(effectiveMaterial(s, data, 'pine_log').burnSeconds, 5940);
+  assert.equal(effectiveMaterial(s, data, 'glowcap').burnSeconds, 4500);
   buyUpgrade(s, data, 'ember_preservation');
-  assert.equal(getThreshold(s, data), 390);
+  assert.equal(getThreshold(s, data), 3300);
 });
 
 test('shop, selling and unlocks', () => {
@@ -215,12 +215,12 @@ test('milestones award once and unlock materials', () => {
 
 test('passive gathering accrues offline, caps, and collects', () => {
   const s = createNewSave(data, T0);
-  accrueGathering(s, data, T0 + 30 * MIN);
-  const got = collectBasket(s, data, T0 + 30 * MIN);
+  accrueGathering(s, data, T0 + 5 * HOUR);
+  const got = collectBasket(s, data, T0 + 5 * HOUR);
   assert.equal(got.dry_leaves, 6);
   assert.equal(got.twigs, 2);
-  accrueGathering(s, data, T0 + 100 * HOUR);
-  const got2 = collectBasket(s, data, T0 + 100 * HOUR);
+  accrueGathering(s, data, T0 + 200 * HOUR);
+  const got2 = collectBasket(s, data, T0 + 200 * HOUR);
   assert.equal(got2.dry_leaves, 8);
   assert.equal(got2.twigs, 5);
 });
@@ -238,7 +238,7 @@ test('player can never be locked out of restarting', () => {
 test('clock moving backwards never adds or removes fire time', () => {
   const s = createNewSave(data, T0);
   settle(s, data, T0 - HOUR);
-  assert.equal(s.fire.remaining, 330);
+  assert.equal(s.fire.remaining, 2730);
 });
 
 test('corrupt saves fall back to backup; storage failures do not throw', () => {

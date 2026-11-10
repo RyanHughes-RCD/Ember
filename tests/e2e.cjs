@@ -83,7 +83,7 @@ function check(cond, msg) {
   await page.click('#stoke-btn');
   s = await save(page);
   check(s.inventory.pine_log === 2, 'pine log consumed immediately');
-  check(Math.round(s.fire.remaining) >= 1195, `remaining ≈ 20 min (${Math.round(s.fire.remaining)}s)`);
+  check(Math.round(s.fire.remaining) >= 8095, `remaining ≈ 2h 15m (${Math.round(s.fire.remaining)}s)`);
 
   console.log('Capacity: only one slot at level 0');
   await page.click('.tray-item[data-id="twigs"]');
@@ -117,7 +117,7 @@ function check(cond, msg) {
   check((await page.textContent('#w-sparks')).trim() === String(500 - 240), 'wallet updates immediately');
   await nav(page, 'fire');
   check((await page.$$('.slot')).length === 3, 'three slots shown');
-  await advance(page, 11 * MIN); // ~4 min left
+  await advance(page, 86 * MIN); // inside the stoke window
   await page.waitForSelector('#stoke-btn:not([disabled])', { state: 'attached' }).catch(() => {});
   await page.click('.tray-item[data-id="pine_log"]');
   await page.click('.tray-item[data-id="twigs"]');
@@ -135,7 +135,7 @@ function check(cond, msg) {
 
   console.log('Close the app until the fire expires');
   await page.close();
-  T += 8 * HOUR;
+  T += 12 * HOUR;
   page = await open();
   s = await save(page);
   check(s.fire.status === 'ash' && s.pendingAsh, 'fire extinguished offline, rewards pending');

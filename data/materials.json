@@ -3,7 +3,7 @@
     "id": "dry_leaves", "name": "Dry Leaves", "category": "flora", "rarity": "common",
     "description": "A crackling handful. Gone in a moment, but always easy to find.",
     "icon": { "shape": "leaf", "palette": ["#2a1608", "#6e3a14", "#a8622a", "#d49a4a", "#f0c878"] },
-    "burnSeconds": 120, "heat": 2, "quality": 1, "essence": 0, "ashYield": 1,
+    "burnSeconds": 1200, "heat": 2, "quality": 1, "essence": 0, "ashYield": 1,
     "price": 2, "unlock": null,
     "loot": [
       { "item": "fine_ash", "chance": 0.8, "min": 1, "max": 2 },
@@ -15,7 +15,7 @@
     "id": "twigs", "name": "Twigs", "category": "wood", "rarity": "common",
     "description": "Dry kindling snapped from low branches.",
     "icon": { "shape": "twigs", "palette": ["#24140a", "#5a3418", "#8a5a2e", "#b88a52", "#d8b078"] },
-    "burnSeconds": 300, "heat": 4, "quality": 1, "essence": 0, "ashYield": 2,
+    "burnSeconds": 1800, "heat": 4, "quality": 1, "essence": 0, "ashYield": 2,
     "price": 4, "unlock": null,
     "loot": [
       { "item": "fine_ash", "chance": 0.6, "min": 1, "max": 2 },
@@ -28,7 +28,7 @@
     "id": "pine_log", "name": "Pine Log", "category": "wood", "rarity": "common",
     "description": "Resinous and reliable. Pops and hisses as it burns.",
     "icon": { "shape": "log", "palette": ["#1e1008", "#5a3218", "#8c5428", "#c08850", "#e6c08a"] },
-    "burnSeconds": 900, "heat": 8, "quality": 2, "essence": 1, "ashYield": 5,
+    "burnSeconds": 5400, "heat": 8, "quality": 2, "essence": 1, "ashYield": 5,
     "price": 18, "unlock": null,
     "loot": [
       { "item": "charcoal", "chance": 0.7, "min": 1, "max": 3 },
@@ -41,7 +41,7 @@
     "id": "brown_mushroom", "name": "Brown Mushrooms", "category": "fungi", "rarity": "common",
     "description": "Earthy caps that smoulder slowly and smell of rain.",
     "icon": { "shape": "mushroom", "palette": ["#1e120a", "#5c3a20", "#8a5e36", "#bc8c58", "#e8d4b0"] },
-    "burnSeconds": 480, "heat": 3, "quality": 3, "essence": 5, "ashYield": 3,
+    "burnSeconds": 2700, "heat": 3, "quality": 3, "essence": 5, "ashYield": 3,
     "price": 20, "unlock": { "firesCompleted": 1 },
     "loot": [
       { "item": "earthy_spores", "chance": 0.7, "min": 1, "max": 3 },
@@ -54,7 +54,7 @@
     "id": "herbs", "name": "Herbs", "category": "flora", "rarity": "uncommon",
     "description": "Bundled sage and thyme. The smoke carries old memories.",
     "icon": { "shape": "herb", "palette": ["#0e1a0c", "#2e4a22", "#4e7a36", "#7eaa52", "#c2d88a"] },
-    "burnSeconds": 420, "heat": 2, "quality": 5, "essence": 4, "ashYield": 3,
+    "burnSeconds": 2400, "heat": 2, "quality": 5, "essence": 4, "ashYield": 3,
     "price": 25, "unlock": { "firesCompleted": 1 },
     "loot": [
       { "item": "fine_ash", "chance": 0.5, "min": 1, "max": 1 },
@@ -67,7 +67,7 @@
     "id": "dried_flowers", "name": "Dried Flowers", "category": "flora", "rarity": "uncommon",
     "description": "Faded petals that burn with a sweet, bright flicker.",
     "icon": { "shape": "flower", "palette": ["#2a0e1a", "#7a2e4a", "#b8567a", "#e88aa8", "#f8e0a0"] },
-    "burnSeconds": 360, "heat": 1, "quality": 6, "essence": 3, "ashYield": 3,
+    "burnSeconds": 2100, "heat": 1, "quality": 6, "essence": 3, "ashYield": 3,
     "price": 25, "unlock": { "firesCompleted": 2 },
     "loot": [
       { "item": "fine_ash", "chance": 0.5, "min": 1, "max": 1 },
@@ -80,7 +80,7 @@
     "id": "birch_log", "name": "Birch Log", "category": "wood", "rarity": "uncommon",
     "description": "Pale papery bark that catches easily and burns clean.",
     "icon": { "shape": "log", "palette": ["#222024", "#6a6260", "#c8c0b4", "#ece6da", "#fffaf0"] },
-    "burnSeconds": 1200, "heat": 7, "quality": 3, "essence": 2, "ashYield": 5,
+    "burnSeconds": 7200, "heat": 7, "quality": 3, "essence": 2, "ashYield": 5,
     "price": 40, "unlock": { "firesCompleted": 2 },
     "loot": [
       { "item": "charcoal", "chance": 0.6, "min": 1, "max": 2 },
@@ -93,7 +93,7 @@
     "id": "coal", "name": "Coal", "category": "minerals", "rarity": "uncommon",
     "description": "Black stone that burns fiercely hot. Little magic in it.",
     "icon": { "shape": "lump", "palette": ["#08080a", "#1c1c22", "#34343e", "#56566a", "#8a8aa0"] },
-    "burnSeconds": 1500, "heat": 18, "quality": 2, "essence": 0, "ashYield": 3,
+    "burnSeconds": 9000, "heat": 18, "quality": 2, "essence": 0, "ashYield": 3,
     "price": 45, "unlock": { "firesCompleted": 3 },
     "loot": [
       { "item": "clinker", "chance": 0.7, "min": 1, "max": 2 },
@@ -107,7 +107,7 @@
     "id": "oak_log", "name": "Oak Log", "category": "wood", "rarity": "uncommon",
     "description": "Dense, slow and dependable. Old oaks hide old things.",
     "icon": { "shape": "log", "palette": ["#1a0c06", "#4a2410", "#74401e", "#a4683a", "#d09a62"] },
-    "burnSeconds": 1800, "heat": 12, "quality": 4, "essence": 1, "ashYield": 7,
+    "burnSeconds": 10800, "heat": 12, "quality": 4, "essence": 1, "ashYield": 7,
     "price": 70, "unlock": { "milestone": "m60" },
     "loot": [
       { "item": "charcoal", "chance": 0.75, "min": 1, "max": 3 },
@@ -122,7 +122,7 @@
     "id": "amber", "name": "Amber", "category": "minerals", "rarity": "rare",
     "description": "Fossil sap, warm to the touch. Burns golden and fragrant.",
     "icon": { "shape": "gem", "palette": ["#3a1c02", "#9a5208", "#d88a12", "#f8c040", "#fff0b0"] },
-    "burnSeconds": 600, "heat": 4, "quality": 9, "essence": 6, "ashYield": 4,
+    "burnSeconds": 3600, "heat": 4, "quality": 9, "essence": 6, "ashYield": 4,
     "price": 120, "unlock": { "discovered": "amber" },
     "loot": [
       { "item": "golden_resin", "chance": 0.6, "min": 1, "max": 2 },
@@ -135,7 +135,7 @@
     "id": "glowcap", "name": "Glowcap", "category": "fungi", "rarity": "rare",
     "description": "A softly shining mushroom. Its flame is pale and strange.",
     "icon": { "shape": "mushroom", "palette": ["#0a1424", "#1a5a6a", "#2ea4a8", "#7ef0d8", "#e0fff4"] },
-    "burnSeconds": 720, "heat": 3, "quality": 8, "essence": 15, "ashYield": 3,
+    "burnSeconds": 4500, "heat": 3, "quality": 8, "essence": 15, "ashYield": 3,
     "price": 150, "unlock": { "milestone": "m360" },
     "loot": [
       { "item": "luminescent_spores", "chance": 0.7, "min": 1, "max": 3 },
@@ -149,7 +149,7 @@
     "id": "moonstone", "name": "Moonstone", "category": "minerals", "rarity": "epic",
     "description": "A pale stone that drinks the firelight and glows back.",
     "icon": { "shape": "gem", "palette": ["#141830", "#4a5490", "#8a9ad8", "#c8d4ff", "#ffffff"] },
-    "burnSeconds": 2700, "heat": 5, "quality": 12, "essence": 25, "ashYield": 5,
+    "burnSeconds": 16200, "heat": 5, "quality": 12, "essence": 25, "ashYield": 5,
     "price": 450, "unlock": { "discovered": "moonstone" },
     "loot": [
       { "item": "moon_dust", "chance": 0.7, "min": 1, "max": 2 },
@@ -163,7 +163,7 @@
     "id": "ancientwood", "name": "Ancientwood", "category": "wood", "rarity": "legendary",
     "description": "Heartwood from a tree older than memory. It burns for hours.",
     "icon": { "shape": "log", "palette": ["#140a1a", "#3e1e3a", "#6a3a52", "#b07a5a", "#ffd890"] },
-    "burnSeconds": 5400, "heat": 20, "quality": 15, "essence": 20, "ashYield": 12,
+    "burnSeconds": 32400, "heat": 20, "quality": 15, "essence": 20, "ashYield": 12,
     "price": 1800, "unlock": { "milestone": "m1440" },
     "loot": [
       { "item": "charcoal", "chance": 0.8, "min": 2, "max": 4 },

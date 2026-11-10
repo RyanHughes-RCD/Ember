@@ -12,7 +12,7 @@ so it runs directly on GitHub Pages.
 ## How to play
 
 1. The fire burns in real time, even while the game is closed.
-2. Once it drops to **5:00 or less** you can stoke it. Tap fuel to fill your slots, then press **STOKE FIRE**.
+2. Once it drops to its last **45 minutes** you can stoke it. Tap fuel to fill your slots, then press **STOKE FIRE**.
    You start with 1 slot per stoke. Upgrades raise this to 2, 3, 4, 5, 7 and finally 10.
 3. Each material has its own burn time, **heat**, **quality**, **essence**, **ash yield** and its own loot table.
    - Heat boosts fiery finds (charcoal, obsidian, Ember Cores)

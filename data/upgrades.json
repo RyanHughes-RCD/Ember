@@ -41,7 +41,7 @@
     "id": "ember_preservation", "group": "firekeeping", "name": "Ember Preservation",
     "description": "Embers hold their spark: stoke earlier and draw out more essence.",
     "icon": "core",
-    "effect": { "type": "preservation", "thresholdPerLevel": 90, "essencePerLevel": 0.08 },
+    "effect": { "type": "preservation", "thresholdPerLevel": 600, "essencePerLevel": 0.08 },
     "costs": [ { "sparks": 400, "cores": 1 }, { "sparks": 1200, "cores": 3 }, { "sparks": 3000, "cores": 6 } ]
   },
   {

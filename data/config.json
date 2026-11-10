@@ -1,6 +1,6 @@
 {
   "saveKey": "embers-save",
-  "stokeThresholdSeconds": 300,
+  "stokeThresholdSeconds": 2700,
   "capacityByLevel": [1, 2, 3, 4, 5, 7, 10],
   "rarities": ["common", "uncommon", "rare", "epic", "legendary"],
   "rarityColors": {
@@ -20,15 +20,15 @@
     "cores": 0,
     "inventory": { "dry_leaves": 6, "twigs": 6, "pine_log": 3 },
     "welcomeFire": {
-      "remainingSeconds": 330,
+      "remainingSeconds": 2730,
       "materials": { "twigs": 1 }
     }
   },
   "gathering": {
     "description": "Fallen fuel collects in a basket near the fire, even while you are away.",
     "sources": [
-      { "id": "dry_leaves", "everySeconds": 300, "cap": 8 },
-      { "id": "twigs", "everySeconds": 720, "cap": 5 }
+      { "id": "dry_leaves", "everySeconds": 3000, "cap": 8 },
+      { "id": "twigs", "everySeconds": 7200, "cap": 5 }
     ]
   },
   "forage": {

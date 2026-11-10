@@ -18,34 +18,25 @@
 </head>
 <body>
   <div id="app" class="loading">
-    <header class="topbar">
-      <h1 class="logo"><span class="logo-flame" aria-hidden="true"></span>EMBERS</h1>
-      <div class="wallet">
-        <span class="coin sparks" title="Sparks"><b>✦</b><span id="w-sparks">0</span></span>
-        <span class="coin cores" title="Ember Cores"><b>◆</b><span id="w-cores">0</span></span>
+    <section id="view-fire" aria-label="Campfire">
+      <canvas id="scene" aria-label="The campfire"></canvas>
+      <div class="hud">
+        <div class="hud-time" id="hud-time">--:--</div>
+        <div class="hud-sub" id="hud-sub"></div>
       </div>
-      <button id="btn-settings" class="icon-btn" aria-label="Settings &amp; help">☰</button>
-    </header>
+      <button id="btn-menu" class="icon-btn" aria-label="Menu">☰</button>
+      <div id="fire-panel" class="panel"></div>
+    </section>
 
-    <main id="views">
-      <section id="view-fire" class="view active" aria-label="Campfire">
-        <div class="scene-wrap">
-          <canvas id="scene" aria-label="The campfire"></canvas>
-          <div class="hud">
-            <div class="hud-label" id="hud-label">Remaining</div>
-            <div class="hud-time" id="hud-time">--:--</div>
-            <div class="hud-sub" id="hud-sub"></div>
-          </div>
+    <div id="pages" class="pages" hidden>
+      <header class="topbar">
+        <button id="btn-back" class="icon-btn" aria-label="Back to the fire">‹</button>
+        <h1 class="page-title" id="page-title"></h1>
+        <div class="wallet">
+          <span class="coin sparks" title="Sparks"><b>✦</b><span id="w-sparks">0</span></span>
+          <span class="coin cores" title="Ember Cores"><b>◆</b><span id="w-cores">0</span></span>
         </div>
-        <div class="fire-stats" id="fire-stats">
-          <div class="stat"><span>Alive</span><b id="st-duration">0m</b></div>
-          <div class="stat heat"><span>Heat</span><b id="st-heat">0</b></div>
-          <div class="stat quality"><span>Quality</span><b id="st-quality">0</b></div>
-          <div class="stat essence"><span>Essence</span><b id="st-essence">0</b></div>
-        </div>
-        <div id="fire-panel" class="panel"></div>
-      </section>
-
+      </header>
       <section id="view-materials" class="view" aria-label="Materials">
         <div class="subtabs" role="tablist">
           <button class="subtab active" data-sub="fuel">Fuel</button>
@@ -54,22 +45,13 @@
         </div>
         <div id="materials-body"></div>
       </section>
-
       <section id="view-journal" class="view" aria-label="Discoveries">
         <div id="journal-body"></div>
       </section>
-
       <section id="view-upgrades" class="view" aria-label="Upgrades">
         <div id="upgrades-body"></div>
       </section>
-    </main>
-
-    <nav class="tabbar" aria-label="Sections">
-      <button class="tab active" data-view="fire"><img alt="" data-icon="flame"><span>Fire</span></button>
-      <button class="tab" data-view="materials"><img alt="" data-icon="log"><span>Materials</span></button>
-      <button class="tab" data-view="journal"><img alt="" data-icon="book"><span>Journal</span></button>
-      <button class="tab" data-view="upgrades"><img alt="" data-icon="bellows"><span>Upgrades</span></button>
-    </nav>
+    </div>
 
     <div id="reveal" class="reveal" hidden>
       <div class="reveal-inner">

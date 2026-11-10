@@ -114,7 +114,9 @@ export class FireView {
   collectBasket() {
     const got = this.game.act((s, d, now) => ({ got: collectBasket(s, d, now) })).got;
     const parts = Object.entries(got).map(([id, n]) => `${n} ${this.data.byId[id].name}`);
-    if (parts.length) {
+    if (!parts.length) {
+      this.ui.toast('Nothing in the basket yet.', '', 'basket');
+    } else {
       sfx.coin();
       this.ui.toast(`Gathered ${parts.join(' and ')}.`, '', 'basket');
     }
@@ -140,31 +142,21 @@ export class FireView {
     const dur = durationAt(fire, now);
     const thr = getThreshold(s, this.data);
     const timeEl = $('#hud-time');
-    const labelEl = $('#hud-label');
     const subEl = $('#hud-sub');
 
     if (fire.status === 'burning') {
-      labelEl.textContent = 'Burn time remaining';
       timeEl.textContent = fmtClock(rem);
       timeEl.className = `hud-time${rem <= thr ? ' low' : ''}`;
-      subEl.textContent = rem <= thr ? 'The fire is running low — stoke it!' : `Stoke in ${fmtClock(rem - thr)}`;
+      subEl.textContent = rem <= thr ? 'The fire is running low' : '';
     } else if (fire.status === 'ash' || this.ui.revealing) {
-      labelEl.textContent = 'The fire has gone out';
       timeEl.textContent = 'Ashes';
       timeEl.className = 'hud-time out';
       subEl.textContent = s.pendingAsh ? `It burned for ${fmtDur(s.pendingAsh.duration)}` : '';
     } else {
-      labelEl.textContent = 'The firepit is cold';
       timeEl.textContent = 'Unlit';
       timeEl.className = 'hud-time out';
-      subEl.textContent = 'Choose fuel and light a new fire';
+      subEl.textContent = '';
     }
-
-    const live = fire.status === 'burning' || fire.status === 'ash';
-    $('#st-duration').textContent = live ? fmtDur(dur, { short: dur >= 3600 }) : '—';
-    $('#st-heat').textContent = live ? fmtStat(fire.totalHeat) : '—';
-    $('#st-quality').textContent = live ? fmtStat(fire.totalQuality) : '—';
-    $('#st-essence').textContent = live ? fmtStat(fire.totalEssence) : '—';
 
     // Scene parameters
     const avg = fireAverages(fire);
@@ -186,15 +178,13 @@ export class FireView {
     } else {
       // live countdown text without rebuilding (keeps taps reliable)
       const wait = fmtClock(Math.max(0, rem - thr));
-      const cd = $('#stoke-wait', this.panel);
-      if (cd) cd.textContent = wait;
       const btn = $('#stoke-btn', this.panel);
       if (btn && btn.dataset.waiting) btn.textContent = `STOKE IN ${wait}`;
       const after = $('#stoke-after', this.panel);
       if (after) after.textContent = fmtClock(rem + selectionSeconds(s, this.data, this.selection));
       const bn = $('#basket-next', this.panel);
       const nextIn = nextGatherIn(s, this.data);
-      if (bn) bn.textContent = nextIn === null ? 'The basket is full.' : `More in ${fmtClock(nextIn)}`;
+      if (bn) bn.textContent = nextIn === null ? 'Full' : fmtClock(nextIn);
     }
   }
 
@@ -222,8 +212,6 @@ export class FireView {
       const p = s.pendingAsh;
       this.panel.innerHTML = `
         <div class="ash-panel">
-          <p>The last embers have faded. <b>${p.materialsCount}</b> material${p.materialsCount === 1 ? '' : 's'}
-            burned over <b>${fmtDur(p.duration)}</b>. Something glints beneath the ash…</p>
           <button class="btn btn-primary btn-wide glow" data-act="sift">SIFT THROUGH ASHES</button>
         </div>`;
       return;
@@ -245,11 +233,6 @@ export class FireView {
         : '<div class="slot" aria-hidden="true"></div>';
     }
 
-    let status;
-    if (lighting) status = '<p class="status-line ready">Choose fuel to light a new fire.</p>';
-    else if (ready) status = `<p class="status-line ready">The fire is low. Add up to ${cap} material${cap === 1 ? '' : 's'}.</p>`;
-    else status = `<p class="status-line">Stoking opens at ${fmtClock(thr)} remaining — in <b id="stoke-wait">${fmtClock(rem - thr)}</b>.</p>`;
-
     const after = (lighting ? 0 : rem) + adds;
     const label = lighting ? 'LIGHT FIRE' : ready ? 'STOKE FIRE' : `STOKE IN ${fmtClock(rem - thr)}`;
     const btnOk = ready && count > 0;
@@ -267,42 +250,30 @@ export class FireView {
         </button>`;
     }).join('');
 
-    // passive basket
+    // passive basket: a tile at the start of the fuel strip
     const basket = basketContents(s, d);
-    const bParts = Object.entries(basket).map(([id, n]) => `<b>${n}</b> ${esc(d.byId[id].name)}`);
+    const bCount = Object.values(basket).reduce((x, y) => x + y, 0);
     const nextIn = nextGatherIn(s, d);
-    const basketHtml = `
-      <div class="card basket">
+    const basketHtml = `<button class="tray-item basket-btn${bCount ? ' has' : ''}" data-act="basket" aria-label="Collect gathered fuel">
+        ${bCount ? `<span class="qty">+${bCount}</span>` : ''}
         <img class="px-icon" src="${uiIconUrl('basket')}" alt="">
-        <div class="txt">${bParts.length ? `Fallen fuel: ${bParts.join(', ')}` : 'Your gathering basket is empty.'}
-          <br><span id="basket-next">${nextIn === null ? 'The basket is full.' : `More in ${fmtClock(nextIn)}`}</span></div>
-        <button class="btn btn-small" data-act="basket" ${bParts.length ? '' : 'disabled'}>Collect</button>
-      </div>`;
-
-    // burned this fire
-    let burned = '';
-    if (!lighting && fire.materialsCount > 0) {
-      const chips = Object.entries(fire.materialsBurned).map(([id, n]) =>
-        `<span class="chip"><img class="px-icon" src="${iconUrl(d.byId[id])}" alt="">${n}× ${esc(d.byId[id].name)}</span>`).join('');
-      burned = `<div class="burned"><h3 class="section-title">In this fire · ${fire.materialsCount} burned · ${fire.stokes} stoke${fire.stokes === 1 ? '' : 's'}</h3><div class="chips">${chips}</div></div>`;
-    }
+        <span class="nm">${bCount ? 'Collect' : 'Basket'}</span><span class="bt" id="basket-next">${nextIn === null ? 'Full' : fmtClock(nextIn)}</span>
+      </button>`;
 
     const noFuel = burnableCount(s, d) === 0;
     const forageBtn = canForage(s, d)
       ? '<button class="btn btn-wide" data-act="forage" style="margin-top:10px">FORAGE FOR KINDLING</button>' : '';
 
     this.panel.innerHTML = `
-      ${status}
       <div class="slots-row">${slots}</div>
-      <div class="slots-meta">
-        <span>Slots <b>${count}/${cap}</b>${count ? ' · <a href="#" data-act="clear" style="color:var(--muted)">clear</a>' : ''}</span>
-        <span>${adds ? `<span class="plus">+${fmtClock(adds)}</span> → <b id="${lighting ? '' : 'stoke-after'}">${fmtClock(after)}</b>` : 'Tap fuel to add it'}</span>
-      </div>
+      <div class="slots-meta">${adds
+    ? `<span class="plus">+${fmtClock(adds)}</span> → <b id="${lighting ? '' : 'stoke-after'}">${fmtClock(after)}</b>`
+    : noFuel ? 'No fuel left — <a href="#" data-act="shop" style="color:var(--amber)">visit the shop</a>' : ''}</div>
       <button id="stoke-btn" class="btn btn-primary btn-wide${btnOk ? ' glow' : ''}" data-act="stoke" ${!lighting && !ready ? 'data-waiting="1"' : ''} ${btnOk ? '' : 'disabled'}>${label}</button>
-      <div class="tray-head"><h3>Your fuel</h3><a href="#" data-act="shop" style="color:var(--amber);font-size:13px">Shop ›</a></div>
-      ${owned.length ? `<div class="tray">${tray}</div>` : `<div class="empty-note">${noFuel ? 'No fuel left. Collect your basket or visit the shop.' : ''}</div>`}
       ${forageBtn}
-      ${basketHtml}
-      ${burned}`;
+      <div class="tray">${basketHtml}${tray}</div>`;
+    // keep the fire clear of the controls (only ever grows, so the fire never jumps around)
+    const hPx = this.panel.offsetHeight;
+    if (hPx > (this.maxPanel || 0) + 4) { this.maxPanel = hPx; this.scene.layout(hPx - 20); }
   }
 }

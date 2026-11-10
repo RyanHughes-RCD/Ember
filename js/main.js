@@ -4,7 +4,6 @@ import { loadData } from './data.js';
 import { Game } from './game.js';
 import { collectAsh } from './logic/fire.js';
 import { sellValue, isUnlocked, nextUpgradeCost } from './logic/economy.js';
-import { canStokeNow } from './logic/fire.js';
 import { effectiveMaterial } from './logic/stats.js';
 import { Scene, loadSprites } from './ui/scene.js';
 import { iconUrl, uiIconUrl } from './ui/icons.js';
@@ -49,14 +48,24 @@ function renderWallet() {
   $('#w-cores').textContent = fmtNum(game.state.cores);
 }
 
+const PAGE_TITLES = { materials: 'Materials', journal: 'Journal', upgrades: 'Upgrades' };
+
+/** 'fire' shows the campsite alone; anything else opens that page over it. */
 function go(view, sub) {
   ui.view = view;
-  $$('.tab').forEach((t) => t.classList.toggle('active', t.dataset.view === view));
-  $$('.view').forEach((v) => v.classList.toggle('active', v.id === `view-${view}`));
-  if (view === 'fire') scene.start(); else scene.stop();
+  const page = view !== 'fire';
+  $('#pages').hidden = !page;
+  if (page) {
+    $('#page-title').textContent = PAGE_TITLES[view];
+    $$('#pages .view').forEach((v) => v.classList.toggle('active', v.id === `view-${view}`));
+    $('#pages').scrollTop = 0;
+    scene.stop();
+  } else {
+    scene.layout();
+    scene.start();
+  }
   if (view === 'materials' && sub) materialsView.setSub(sub);
   renderAll();
-  window.scrollTo({ top: 0 });
 }
 
 function renderAll() {
@@ -66,21 +75,45 @@ function renderAll() {
   else if (ui.view === 'materials') materialsView.render();
   else if (ui.view === 'journal') journalView.render(now);
   else if (ui.view === 'upgrades') upgradesView.render();
-  renderDots(now);
+  renderDots();
 }
 
-function renderDots(now) {
+function upgradeAffordable() {
   const s = game.state; const d = game.data;
-  const dots = {
-    fire: ui.view !== 'fire' && (s.fire.status === 'ash' || (s.fire.status === 'burning' && canStokeNow(s, d, now))),
-    upgrades: d.upgrades.some((u) => { const c = nextUpgradeCost(s, d, u.id); return c && s.sparks >= c.sparks && s.cores >= c.cores; }),
-  };
-  $$('.tab').forEach((t) => {
-    const want = Boolean(dots[t.dataset.view]);
-    const has = t.querySelector('.dot');
-    if (want && !has) t.insertAdjacentHTML('beforeend', '<i class="dot"></i>');
-    if (!want && has) has.remove();
-  });
+  return d.upgrades.some((u) => { const c = nextUpgradeCost(s, d, u.id); return c && s.sparks >= c.sparks && s.cores >= c.cores; });
+}
+
+/** A small dot on the menu button when an upgrade can be bought. */
+function renderDots() {
+  const btn = $('#btn-menu');
+  const want = upgradeAffordable();
+  const has = btn.querySelector('.dot');
+  if (want && !has) btn.insertAdjacentHTML('beforeend', '<i class="dot"></i>');
+  if (!want && has) has.remove();
+}
+
+function showMenu() {
+  const s = game.state;
+  const item = (view, icon, label, dot) => `<button class="btn menu-item" data-view="${view}">
+    <img class="px-icon" src="${uiIconUrl(icon)}" alt="">${label}${dot ? '<i class="dot"></i>' : ''}</button>`;
+  openSheet(`
+    <h2>Embers</h2>
+    <div class="menu-wallet">
+      <span class="coin sparks"><b>✦</b>${fmtNum(s.sparks)}</span>
+      <span class="coin cores"><b>◆</b>${fmtNum(s.cores)}</span>
+    </div>
+    <div class="menu-list">
+      ${item('materials', 'log', 'Materials')}
+      ${item('journal', 'book', 'Journal')}
+      ${item('upgrades', 'bellows', 'Upgrades', upgradeAffordable())}
+      ${item('settings', 'sieve', 'Settings')}
+    </div>`);
+  $$('#sheet-body .menu-item').forEach((b) => b.addEventListener('click', () => {
+    sfx.tap();
+    if (b.dataset.view === 'settings') { showSettings(); return; }
+    closeSheet();
+    go(b.dataset.view);
+  }));
 }
 
 // ------------------------------------------------------------ sheets
@@ -118,28 +151,10 @@ function showItem(id) {
     ${extra}`);
 }
 
-function howToPlayHtml() {
-  const thr = game.data.config.stokeThresholdSeconds / 60;
-  return `
-    <h2>Embers</h2>
-    <p class="muted">Keep the fire burning. Discover what remains.</p>
-    <ol>
-      <li>Your fire burns in real time — even while the game is closed.</li>
-      <li>When it drops to <b>${thr} minutes</b> or less, you can <b>stoke</b> it: tap fuel to fill your slots, then press <b>STOKE FIRE</b>.</li>
-      <li>You start with one slot per stoke. Upgrades add more.</li>
-      <li>Every material has its own burn time, <span style="color:var(--heat)">heat</span>, <span style="color:var(--quality)">quality</span> and <span style="color:var(--essence)">essence</span> — and its own hidden treasures.</li>
-      <li>If the fire reaches zero, it goes out. Press <b>SIFT THROUGH ASHES</b> to recover everything its fuel left behind.</li>
-      <li>Trade treasures for Sparks, buy better fuel and permanent upgrades, and light another fire.</li>
-    </ol>
-    <p class="muted">Heat favours fiery finds and Ember Cores. Quality favours rarer finds. Essence favours magical ones. Mix your fuel.</p>
-    <p class="muted">Fallen leaves and twigs collect in your basket over time, so you can always restart.</p>`;
-}
-
 function showSettings() {
   const s = game.state;
   openSheet(`
-    ${howToPlayHtml()}
-    <h3>Settings</h3>
+    <h2>Settings</h2>
     <div class="settings-row"><span>Sound</span><button class="btn btn-small" id="set-sound">${s.settings.sound ? 'On' : 'Off'}</button></div>
     <div class="settings-row"><span>Back up progress</span><button class="btn btn-small" id="set-export">Export</button></div>
     <div class="settings-row"><span>Restore a backup</span><button class="btn btn-small" id="set-import">Import</button></div>
@@ -173,7 +188,7 @@ function showSettings() {
   $('#set-reset').onclick = () => {
     if (!window.confirm('Erase all progress and start over?')) return;
     if (!window.confirm('Really? This cannot be undone.')) return;
-    game.reset(); closeSheet(); go('fire'); openSheet(howToPlayHtml());
+    game.reset(); closeSheet(); go('fire');
   };
 }
 
@@ -297,7 +312,7 @@ function tick() {
   fireView.update(now);
   if (now - lastSlow > 1000) {
     lastSlow = now;
-    renderDots(now);
+    renderDots();
     if (ui.view === 'journal' && game.state.fire.status === 'burning' && now % 5000 < 1000) journalView.render(now);
   }
 }
@@ -315,10 +330,9 @@ async function boot() {
     journalView = new JournalView(game, ui);
     upgradesView = new UpgradesView(game, ui);
 
-    $('.logo-flame').style.backgroundImage = `url(${uiIconUrl('flame')})`;
-    $$('.tab img').forEach((img) => { img.src = uiIconUrl(img.dataset.icon); });
-    $$('.tab').forEach((t) => t.addEventListener('click', () => { sfx.unlock(); sfx.tap(); go(t.dataset.view); }));
-    $('#btn-settings').addEventListener('click', () => { sfx.unlock(); showSettings(); });
+    $('#btn-menu').addEventListener('click', () => { sfx.unlock(); sfx.tap(); showMenu(); });
+    $('#btn-back').addEventListener('click', () => { sfx.tap(); go('fire'); });
+    window.addEventListener('resize', () => scene.layout());
     $('#sheet').addEventListener('click', (e) => { if (e.target.id === 'sheet' || e.target.closest('.sheet-close')) closeSheet(); });
     $('#btn-continue').addEventListener('click', () => { sfx.tap(); closeReveal(); });
 
@@ -357,8 +371,6 @@ async function boot() {
       ui.revealing = true;
       scene.setFire({ status: 'cold' });
       showReveal(game.state.unseenReveal);
-    } else if (game.isNew) {
-      openSheet(howToPlayHtml());
     }
   } catch (err) {
     console.error(err);

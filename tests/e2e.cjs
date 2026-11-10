@@ -57,11 +57,16 @@ function check(cond, msg) {
   const save = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('embers-save')));
   async function advance(page, ms) { T += ms; await page.clock.fastForward(ms); await page.clock.runFor(300); }
   const hudTime = (page) => page.textContent('#hud-time');
+  async function nav(page, view) {
+    if (await page.isVisible('#pages')) await page.click('#btn-back');
+    if (view === 'fire') return;
+    await page.click('#btn-menu');
+    await page.click(`.menu-item[data-view="${view}"]`);
+  }
 
   console.log('Start a fire / welcome fire');
   let page = await open();
-  check(await page.isVisible('#sheet'), 'how-to-play shown on first launch');
-  await page.click('.sheet-close');
+  check(!(await page.isVisible('#sheet')) && !(await page.isVisible('#pages')), 'opens straight onto the campfire, no tutorial');
   let s = await save(page);
   check(s.fire.status === 'burning', 'welcome fire is burning');
   check(await page.isDisabled('#stoke-btn'), 'stoke button disabled above threshold');
@@ -104,13 +109,13 @@ function check(cond, msg) {
     await p2.close();
   }
   page = await open();
-  await page.click('.tab[data-view="upgrades"]');
+  await nav(page, 'upgrades');
   await page.click('[data-act="upgrade"][data-id="capacity"]');
   await page.click('[data-act="upgrade"][data-id="capacity"]');
   s = await save(page);
   check(s.upgrades.capacity === 2 && s.sparks === 500 - 60 - 180, 'two capacity levels purchased, sparks deducted');
   check((await page.textContent('#w-sparks')).trim() === String(500 - 240), 'wallet updates immediately');
-  await page.click('.tab[data-view="fire"]');
+  await nav(page, 'fire');
   check((await page.$$('.slot')).length === 3, 'three slots shown');
   await advance(page, 11 * MIN); // ~4 min left
   await page.waitForSelector('#stoke-btn:not([disabled])', { state: 'attached' }).catch(() => {});
@@ -182,7 +187,7 @@ function check(cond, msg) {
   check(s.upgrades.capacity === 2 && Object.keys(s.discoveries).length > 0, 'upgrades and discoveries persisted');
 
   console.log('Shop, satchel and journal render');
-  await page.click('.tab[data-view="materials"]');
+  await nav(page, 'materials');
   await page.click('.subtab[data-sub="satchel"]');
   const sparks0 = (await save(page)).sparks;
   if (await page.isEnabled('[data-act="sell-all"]')) await page.click('[data-act="sell-all"]');
@@ -190,7 +195,7 @@ function check(cond, msg) {
   await page.click('.subtab[data-sub="shop"]');
   await page.click('[data-act="buy"][data-id="twigs"][data-qty="1"]');
   check((await save(page)).inventory.twigs >= 1, 'bought twigs');
-  await page.click('.tab[data-view="journal"]');
+  await nav(page, 'journal');
   check((await page.$$('.disc')).length > 20, 'discovery journal lists items');
   check((await page.$$('.disc.unknown')).length > 0, 'undiscovered items are silhouettes');
 

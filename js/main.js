@@ -159,6 +159,23 @@ function showItem(id) {
     ${extra}`);
 }
 
+/**
+ * Re-download every file the game has loaded, bypassing the cache, then reload.
+ * Home-screen web apps on iOS can otherwise keep running an old version.
+ */
+async function fetchLatest(btn) {
+  btn.disabled = true;
+  btn.textContent = 'Updating…';
+  game.save();
+  const urls = new Set([window.location.href.split('#')[0]]);
+  for (const e of performance.getEntriesByType('resource')) {
+    const u = new URL(e.name, window.location.href);
+    if (u.origin === window.location.origin) urls.add(u.href);
+  }
+  await Promise.all([...urls].map((u) => fetch(u, { cache: 'reload' }).catch(() => {})));
+  window.location.reload();
+}
+
 function showSettings() {
   const s = game.state;
   openSheet(`
@@ -167,6 +184,7 @@ function showSettings() {
     <div class="settings-row"><span>Back up progress</span><button class="btn btn-small" id="set-export">Export</button></div>
     <div class="settings-row"><span>Restore a backup</span><button class="btn btn-small" id="set-import">Import</button></div>
     <div id="save-io"></div>
+    <div class="settings-row"><span>Get the latest version</span><button class="btn btn-small" id="set-update">Update</button></div>
     <div class="settings-row"><span>Erase all progress</span><button class="btn btn-small btn-danger" id="set-reset">Reset</button></div>
     <p class="muted" style="font-size:12px">Progress is saved on this device automatically.</p>`);
   $('#set-sound').onclick = () => {
@@ -193,6 +211,7 @@ function showSettings() {
       } catch (err) { toast(`Could not restore: ${err.message}`, 'error'); }
     };
   };
+  $('#set-update').onclick = () => fetchLatest($('#set-update'));
   $('#set-reset').onclick = () => {
     if (!window.confirm('Erase all progress and start over?')) return;
     if (!window.confirm('Really? This cannot be undone.')) return;

@@ -19,6 +19,7 @@ export function emptyFire() {
     materialsBurned: {}, // { materialId: count } — the complete list consumed this fire
     stokes: 0,
     tint: null, // { color, until } — e.g. a Wooden Effigy makes the flames burn red for a while
+    putOut: null, // { at, message } — something will put the fire out early (the Wooden Effigy)
   };
 }
 

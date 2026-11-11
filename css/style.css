@@ -437,6 +437,20 @@ img.px-icon, canvas, .pixel { image-rendering: pixelated; image-rendering: crisp
 textarea.save-text { width: 100%; min-height: 90px; background: #0f0b08; color: var(--text); border: 2px solid var(--line); font-family: ui-monospace, monospace; font-size: 11px; }
 .btn-danger { background: #5a1a12; }
 
+/* ------------------------------------------------------------ the fire put out early */
+.omen { text-align: center; padding: 18px 4px 4px; }
+.omen-text {
+  font-size: 16px !important; line-height: 1.6; letter-spacing: 1px; color: #cfc8c0 !important;
+  margin: 8px 0 22px; text-shadow: 0 0 10px rgba(0, 0, 0, 0.9); animation: omen-shake 0.5s ease-out 1;
+}
+.omen-ok { background: #241c18; }
+@keyframes omen-shake {
+  0%, 100% { transform: none; }
+  20% { transform: translateY(2px); }
+  40% { transform: translateY(-1px); }
+  60% { transform: translateY(1px); }
+}
+
 /* ------------------------------------------------------------ toasts */
 #toasts {
   position: fixed; left: 50%; transform: translateX(-50%); z-index: 70; width: calc(100% - 24px); max-width: 456px;

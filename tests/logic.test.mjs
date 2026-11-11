@@ -295,18 +295,56 @@ test('foraging occasionally turns up a Wooden Effigy', () => {
 test('a Wooden Effigy makes the fire burn red while it burns', () => {
   const s = createNewSave(data, T0);
   s.upgrades.capacity = 6;
-  s.inventory.wooden_effigy = 2;
+  s.inventory.wooden_effigy = 1;
   const at = T0 + 30_000;
   assert.equal(tintAt(s.fire, at), null);
   assert.equal(stoke(s, data, { wooden_effigy: 1, pine_log: 1 }, at).ok, true);
-  assert.equal(tintAt(s.fire, at + 29 * MIN), 'red');
-  assert.equal(tintAt(s.fire, at + 31 * MIN), null, 'back to orange after its 30 minutes');
-  // a second one while still red keeps it red for another 30 minutes
-  assert.equal(stoke(s, data, { wooden_effigy: 1 }, at + 60 * MIN + 2 * HOUR - 50 * MIN).ok, true);
-  const t2 = at + 60 * MIN + 2 * HOUR - 50 * MIN;
-  assert.equal(tintAt(s.fire, t2 + 29 * MIN), 'red');
+  assert.equal(tintAt(s.fire, at), 'red');
+  assert.equal(tintAt(s.fire, at + 24 * MIN), 'red');
   assert.equal(effectiveMaterial(s, data, 'wooden_effigy').burnSeconds, 1800);
   assert.equal(buyMaterial(s, data, 'wooden_effigy').ok, false, 'not sold in the shop');
+});
+
+test('something stomps out the fire 25 minutes after an effigy burns', () => {
+  const s = createNewSave(data, T0);
+  s.upgrades.capacity = 6;
+  s.inventory.wooden_effigy = 2; s.inventory.pine_log = 3;
+  const at = T0 + 30_000;
+  stoke(s, data, { wooden_effigy: 1, pine_log: 3 }, at); // hours of fuel
+  assert.deepEqual(settle(s, data, at + 24 * MIN), []);
+  assert.equal(s.fire.status, 'burning');
+  const ev = settle(s, data, at + 25 * MIN + 1000, seeded(3));
+  const out = ev.find((e) => e.type === 'extinguished');
+  assert.ok(out, 'put out at 25 minutes despite plenty of fuel');
+  assert.equal(out.message, 'Something stomped out the fire early');
+  assert.equal(s.fire.status, 'ash');
+  assert.equal(s.pendingAsh.message, 'Something stomped out the fire early');
+  assert.equal(s.pendingAsh.messageSeen, false);
+  assert.equal(Math.round(s.pendingAsh.duration), 30 + 25 * 60, 'the fire stopped exactly then');
+  assert.ok(s.pendingAsh.materialsBurned.wooden_effigy === 1 && s.pendingAsh.materialsBurned.pine_log === 3, 'everything burned still counts for rewards');
+  collectAsh(s, data, at + HOUR);
+  assert.equal(stoke(s, data, { wooden_effigy: 1 }, at + HOUR).ok, true, 'a new fire can be lit');
+  assert.equal(s.fire.putOut.at, at + HOUR + 25 * MIN, 'a new fire gets its own timer');
+});
+
+test('the stomp also happens while the app is closed, and a second effigy does not delay it', () => {
+  const s = createNewSave(data, T0);
+  s.upgrades.capacity = 6;
+  s.upgrades.ember_preservation = 3; // stoking opens at 1h15m, so a second effigy can follow quickly
+  s.inventory.wooden_effigy = 2;
+  const at = T0 + 30_000;
+  assert.equal(stoke(s, data, { wooden_effigy: 1 }, at).ok, true);
+  assert.equal(stoke(s, data, { wooden_effigy: 1 }, at + 10 * MIN).ok, true, 'second effigy 10 minutes later');
+  assert.equal(s.fire.putOut.at, at + 25 * MIN, 'still put out 25 minutes after the first');
+  const ev = settle(s, data, at + 8 * HOUR, seeded(4));
+  assert.ok(ev.some((e) => e.type === 'extinguished' && e.message));
+  assert.equal(Math.round(s.pendingAsh.duration), 30 + 25 * 60);
+  // a plain fire is unaffected
+  const p = createNewSave(data, T0);
+  stoke(p, data, { pine_log: 1 }, T0 + 30_000);
+  const pe = settle(p, data, T0 + 10 * HOUR, seeded(5)).find((e) => e.type === 'extinguished');
+  assert.equal(pe.message, null);
+  assert.equal(p.pendingAsh.messageSeen, true);
 });
 
 test('old basket saves become spawns', () => {

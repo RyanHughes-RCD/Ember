@@ -132,6 +132,19 @@ function openSheet(html) {
 }
 function closeSheet() { $('#sheet').hidden = true; }
 
+/** "Something stomped out the fire early" — shown once, live or on the next visit. */
+function showPutOutMessage() {
+  const p = game.state.pendingAsh;
+  if (!p || !p.message || p.messageSeen) return;
+  game.act((s) => { if (s.pendingAsh) s.pendingAsh.messageSeen = true; });
+  openSheet(`
+    <div class="omen">
+      <p class="omen-text">${esc(p.message)}</p>
+      <button class="btn btn-wide omen-ok" id="omen-ok">OK</button>
+    </div>`);
+  $('#omen-ok').onclick = () => { sfx.tap(); closeSheet(); };
+}
+
 function showItem(id) {
   const s = game.state; const d = game.data;
   const def = d.byId[id];
@@ -321,8 +334,13 @@ function onGameEvent(e) {
     toast(`★ ${m.name} — ${rewardText(d, m.reward)}`, 'milestone');
     bump('sparks');
   } else if (e.type === 'extinguished' && booted) {
-    sfx.extinguish();
     stopAmbience();
+    if (e.message) {
+      sfx.stomp();
+      setTimeout(showPutOutMessage, 1400); // let the embers start to die first
+    } else {
+      sfx.extinguish();
+    }
   } else if (e.type === 'save-error') {
     toast('Progress could not be saved — storage may be full or disabled.', 'error');
   } else if (e.type === 'change') {
@@ -401,6 +419,10 @@ async function boot() {
     setInterval(tick, 250);
     $('#app').classList.remove('loading');
 
+    if (game.state.pendingAsh && game.state.pendingAsh.message && !game.state.pendingAsh.messageSeen) {
+      // the fire was put out early while the player was away
+      setTimeout(showPutOutMessage, 1600);
+    }
     if (game.state.unseenReveal) {
       // Rewards were already granted; replay the reveal the player missed.
       ui.revealing = true;

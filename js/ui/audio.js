@@ -84,6 +84,14 @@ export const sfx = {
   },
   coin() { tone(988, 0.08, { type: 'square', vol: 0.05 }); tone(1319, 0.18, { type: 'square', vol: 0.05, delay: 0.07 }); },
   upgrade() { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.22, { type: 'triangle', vol: 0.1, delay: i * 0.07 })); },
+  stomp() {
+    // two heavy footfalls, then the hiss of the fire dying
+    for (const d of [0, 0.42]) {
+      noise(0.35, { vol: 0.55, freq: 140, q: 0.7, type: 'lowpass', delay: d });
+      tone(62, 0.3, { type: 'sine', vol: 0.22, delay: d, slide: 0.6 });
+    }
+    noise(1.4, { vol: 0.2, freq: 2600, q: 0.4, type: 'highpass', delay: 0.6 });
+  },
   extinguish() { noise(1.6, { vol: 0.25, freq: 2500, q: 0.4, type: 'highpass' }); tone(220, 1.2, { vol: 0.06, slide: 0.5 }); },
   sift() { noise(0.9, { vol: 0.4, freq: 900, q: 0.6 }); noise(0.6, { vol: 0.2, freq: 3000, q: 1, delay: 0.2 }); },
   reveal(rarity) {

@@ -26,8 +26,9 @@ so it runs directly on GitHub Pages.
    and a ladder of 15 one-time milestones (1 hour to 6 days) adds rewards and unlocks new fuel.
 6. Twigs and leaves fall onto a small grassy patch over time, even while you're away. Tap **FORAGE**
    and tap each one to pick it up; up to 6 can lie there at once. Once in a while you'll find a rare
-   **Wooden Effigy**: nothing special as fuel, but while it burns the flames turn red. An emergency fallback means you can
-   never get stuck without fuel.
+   **Wooden Effigy**: nothing special as fuel, and while it burns the flames turn red… but 25 minutes
+   later something comes and stomps the fire out, however much fuel is left.
+   An emergency fallback means you can never get stuck without fuel.
 
 ## Running locally
 

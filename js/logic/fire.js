@@ -41,7 +41,10 @@ export function settle(state, data, now, rng = Math.random) {
     return events;
   }
   const elapsed = (now - fire.lastUpdated) / 1000;
-  const burned = Math.min(elapsed, fire.remaining);
+  // Something may put the fire out before its fuel runs out (see the Wooden Effigy).
+  const untilPutOut = fire.putOut ? Math.max(0, (fire.putOut.at - fire.lastUpdated) / 1000) : Infinity;
+  const putOutFirst = untilPutOut < fire.remaining && elapsed >= untilPutOut;
+  const burned = putOutFirst ? untilPutOut : Math.min(elapsed, fire.remaining);
   fire.totalDuration += burned;
   fire.remaining -= burned;
   state.records.totalFireTime += burned;
@@ -49,11 +52,12 @@ export function settle(state, data, now, rng = Math.random) {
 
   events.push(...checkMilestones(state, data, fire.totalDuration, now));
 
-  if (fire.remaining <= 1e-6) {
+  if (fire.remaining <= 1e-6 || putOutFirst) {
     const outAt = fire.lastUpdated + burned * 1000;
+    const message = putOutFirst ? fire.putOut.message : null;
     fire.remaining = 0;
     fire.lastUpdated = outAt;
-    events.push(extinguish(state, data, outAt, rng));
+    events.push(extinguish(state, data, outAt, rng, message));
   } else {
     fire.lastUpdated = now;
   }
@@ -61,7 +65,7 @@ export function settle(state, data, now, rng = Math.random) {
 }
 
 /** Fire ran out: generate rewards once, store them as pending, move to ash phase. */
-export function extinguish(state, data, at, rng = Math.random) {
+export function extinguish(state, data, at, rng = Math.random, message = null) {
   const fire = state.fire;
   const rewards = generateRewards(state, data, fire, rng);
   const newDiscoveries = rewards.filter((r) => !state.discoveries[r.id]).map((r) => r.id);
@@ -74,10 +78,13 @@ export function extinguish(state, data, at, rng = Math.random) {
     materialsBurned: { ...fire.materialsBurned },
     materialsCount: fire.materialsCount,
     extinguishedAt: at,
+    message, // shown to the player once, e.g. "Something stomped out the fire early"
+    messageSeen: !message,
   };
   fire.status = 'ash';
+  fire.putOut = null;
   state.records.firesCompleted += 1;
-  return { type: 'extinguished', fireId: fire.id };
+  return { type: 'extinguished', fireId: fire.id, message };
 }
 
 export function canStokeNow(state, data, now) {
@@ -131,7 +138,7 @@ export function stoke(state, data, selection, now, rng = Math.random) {
     Object.assign(fire, {
       id: newFireId(now), status: 'burning', remaining: 0, lastUpdated: now, litAt: now,
       totalDuration: 0, totalHeat: 0, totalQuality: 0, totalEssence: 0,
-      materialsCount: 0, materialsBurned: {}, stokes: 0, tint: null,
+      materialsCount: 0, materialsBurned: {}, stokes: 0, tint: null, putOut: null,
     });
   }
 
@@ -152,6 +159,14 @@ export function stoke(state, data, selection, now, rng = Math.random) {
       // the flames take this colour while the material burns; more of it keeps them that colour longer
       const from = fire.tint && fire.tint.color === tint && fire.tint.until > now ? fire.tint.until : now;
       fire.tint = { color: tint, until: from + m.burnSeconds * n * 1000 };
+    }
+    const after = data.materialById[id].extinguishAfterSeconds;
+    if (after) {
+      // the first one burned decides when; more of them don't move it
+      const at = now + after * 1000;
+      if (!fire.putOut || at < fire.putOut.at) {
+        fire.putOut = { at, message: data.materialById[id].extinguishMessage || 'The fire went out early' };
+      }
     }
   }
   fire.lastUpdated = now;

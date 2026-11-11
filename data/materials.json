@@ -176,7 +176,7 @@
   },
   {
     "id": "wooden_effigy", "name": "Wooden Effigy", "category": "wood", "rarity": "rare",
-    "description": "A small whittled figure, found lying in the grass. When it burns, the flames turn red. Something out there notices.",
+    "description": "A small whittled figure, found lying in the grass. When it burns, the flames turn red.",
     "icon": { "shape": "effigy", "palette": ["#1c0e06", "#5a3218", "#8c5a30", "#c08a58", "#e8c090"] },
     "burnSeconds": 1800, "heat": 3, "quality": 2, "essence": 2, "ashYield": 2,
     "price": null, "unlock": null,

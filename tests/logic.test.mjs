@@ -226,7 +226,9 @@ test('endurance bonus is a smooth curve, granted once with the ashes', () => {
   for (let m = 0; m <= 72 * 60; m += 30) {
     const b = enduranceBonus(data, m * 60);
     assert.ok(b.sparks >= prev, 'never decreases');
-    assert.ok(b.sparks - Math.max(prev, 0) <= 12, 'no jumps between half-hour steps');
+    // no jumps: each half hour adds no more than the curve's own slope (plus rounding)
+    const e = data.config.endurance; const h = m / 60 + 0.5;
+    assert.ok(b.sparks - Math.max(prev, 0) <= 0.5 * e.sparksPerHour * e.sparksExponent * h ** (e.sparksExponent - 1) + 1, 'no jumps between half-hour steps');
     prev = b.sparks;
   }
   assert.deepEqual(enduranceBonus(data, 0), { sparks: 0, cores: 0 });

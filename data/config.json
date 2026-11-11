@@ -49,9 +49,9 @@
   "endurance": {
     "description": "Smooth per-fire bonus paid with the ashes: amount = perHour × hours^exponent (cores rounded down).",
     "sparksPerHour": 8,
-    "sparksExponent": 1.1,
+    "sparksExponent": 1.25,
     "coresPerHour": 0.12,
-    "coresExponent": 1.1
+    "coresExponent": 1.25
   },
   "sellRate": 1.0
 }

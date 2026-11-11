@@ -5,9 +5,13 @@ import { $, fmtClock } from './util.js';
 import { iconUrl } from './icons.js';
 import { sfx } from './audio.js';
 import { pickUp, nextGatherIn, spawnCount, canForage, forage } from '../logic/economy.js';
+import { handGrid, newHandVisit, handFrame, HAND_W, HAND_H } from './hand.js';
 
 const NATIVE_W = 96;
 const ITEM = 16; // item sprite size in native pixels
+// The hand in the corner: a small chance on each visit, and a slow chance while you linger.
+const HAND_CHANCE_PER_VISIT = 0.03;
+const HAND_EVERY_SECONDS = 600;
 
 // Night palette, lit warmly from the fire just off-screen (bottom).
 const SOIL = ['#120d09', '#1a130c', '#221810', '#2c2014'];
@@ -36,6 +40,8 @@ export class ForageView {
     this.imgs = {};
     this.appear = new Map(); // spawn key -> time it appeared (for the falling animation)
     this.pops = []; // picked-up items floating away
+    this.hand = null;
+    this.handGrids = { rest: handGrid(false), curl: handGrid(true) };
     this.flies = Array.from({ length: 5 }, (_, i) => ({ x: Math.random(), y: Math.random(), p: i * 1.7 }));
     this.running = false;
     this.bg = null;
@@ -66,6 +72,9 @@ export class ForageView {
     for (const o of this.state.gathering.spawns) this.appear.set(o.key, -Infinity);
     this.layout();
     this.update();
+    this.hand = null;
+    this.handAt = Math.random() < HAND_CHANCE_PER_VISIT ? performance.now() / 1000 + 2 + Math.random() * 4 : null;
+    this.lastT = null;
     if (!this.running) {
       this.running = true;
       const loop = (t) => {
@@ -178,10 +187,10 @@ export class ForageView {
     g.fillStyle = warm; g.fillRect(0, 0, this.w, this.h);
     g.globalCompositeOperation = 'source-over';
     const shade = g.createLinearGradient(0, 0, 0, this.h);
-    shade.addColorStop(0, 'rgba(4,6,14,0.55)'); shade.addColorStop(0.45, 'rgba(4,6,14,0.1)'); shade.addColorStop(1, 'rgba(0,0,0,0)');
+    shade.addColorStop(0, 'rgba(4,6,14,0.3)'); shade.addColorStop(0.45, 'rgba(4,6,14,0.1)'); shade.addColorStop(1, 'rgba(0,0,0,0)');
     g.fillStyle = shade; g.fillRect(0, 0, this.w, this.h);
     const v = g.createRadialGradient(this.cx, this.cy, this.rx * 0.8, this.cx, this.cy, this.w);
-    v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.6)');
+    v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.4)');
     g.fillStyle = v; g.fillRect(0, 0, this.w, this.h);
     return c;
   }
@@ -302,6 +311,9 @@ export class ForageView {
       this.drawItem(c, pp.id, Math.round(pp.x - ITEM / 2), Math.round(pp.y - ITEM / 2 - k * 14), pp.flip);
     }
 
+    this.updateHand(t);
+    this.drawHand(c);
+
     // fireflies
     for (const f of this.flies) {
       f.x += Math.sin(t * 0.7 + f.p) * 0.0009;
@@ -313,6 +325,56 @@ export class ForageView {
       c.fillRect(Math.round(((f.x % 1) + 1) % 1 * this.w), Math.round(((f.y % 1) + 1) % 1 * this.h), 1, 1);
     }
     c.globalAlpha = 1;
+  }
+
+  // ------------------------------------------------------------ the hand
+  // On very rare occasions a pitch-black hand creeps out of one of the top
+  // corners onto the dark forest floor, rests a moment, then pulls back.
+
+  updateHand(t) {
+    const dt = this.lastT === null ? 0 : Math.min(0.1, t - this.lastT);
+    this.lastT = t;
+    if (!this.hand) {
+      const due = this.handAt !== null && t >= this.handAt;
+      if (due || Math.random() < dt / HAND_EVERY_SECONDS) {
+        this.handAt = null;
+        const left = Math.random() < 0.5;
+        const tilt = (Math.random() - 0.5) * 0.35;
+        this.hand = { ...newHandVisit(), left, angle: (left ? Math.PI / 4 : (3 * Math.PI) / 4) + tilt };
+      }
+      return;
+    }
+    this.hand.t += dt;
+    if (this.hand.t >= this.hand.end) this.hand = null;
+  }
+
+  drawHand(c) {
+    const h = this.hand;
+    if (!h) return;
+    const { reveal, curled } = handFrame(h);
+    if (reveal <= 0) return;
+    const grid = curled ? this.handGrids.curl : this.handGrids.rest;
+    const ox = h.left ? 0 : this.w;
+    const cos = Math.cos(h.angle); const sin = Math.sin(h.angle);
+    const mirror = h.left ? 1 : -1;
+    const span = Math.ceil(reveal) + 4;
+    c.fillStyle = '#000';
+    for (let py = 0; py < span; py++) {
+      for (let i = 0; i < span; i++) {
+        const px = h.left ? i : this.w - 1 - i;
+        // supersample so the thin fingers stay unbroken at an angle
+        let hit = false;
+        for (const [sx, sy] of [[0.25, 0.25], [0.75, 0.25], [0.25, 0.75], [0.75, 0.75]]) {
+          const dx = px + sx - ox; const dy = py + sy;
+          const u = dx * cos + dy * sin; // along the reach
+          const v = (-dx * sin + dy * cos) * mirror; // across it
+          const gx = Math.floor(u - reveal + HAND_W);
+          const gy = Math.floor(v + HAND_H / 2);
+          if (gx >= 0 && gy >= 0 && gx < HAND_W && gy < HAND_H && grid[gy][gx]) { hit = true; break; }
+        }
+        if (hit) c.fillRect(px, py, 1, 1);
+      }
+    }
   }
 
   drawItem(c, id, x, y, flip) {

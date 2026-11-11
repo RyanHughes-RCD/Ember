@@ -25,10 +25,6 @@ export async function loadSprites(base = './assets/sprites/') {
 const rand = (a, b) => a + Math.random() * (b - a);
 // On average the eyes appear once per this many seconds spent looking at the fire.
 const EYES_EVERY_SECONDS = 600;
-// …and the hand, rarer still.
-const HAND_EVERY_SECONDS = 1800;
-const HAND_W = 26;
-const HAND_H = 12;
 
 // ---------------------------------------------------------------- fire-ring stones
 
@@ -151,59 +147,6 @@ function buildStones() {
   return out.sort((p, q) => p.dy - q.dy);
 }
 
-// ---------------------------------------------------------------- the hand
-
-/**
- * A pitch-black, long-fingered hand reaching in from the left (mirrored for the
- * right). The faintest warm rim on top of the fingers is the only light it catches.
- */
-function drawHand(curled) {
-  const c = document.createElement('canvas');
-  c.width = HAND_W; c.height = HAND_H;
-  const g = c.getContext('2d');
-  const grid = Array.from({ length: HAND_H }, () => new Array(HAND_W).fill(0));
-  const set = (x, y) => { if (x >= 0 && y >= 0 && x < HAND_W && y < HAND_H) grid[y][x] = 1; };
-  const line = (pts) => {
-    for (let i = 1; i < pts.length; i++) {
-      const [x0, y0] = pts[i - 1]; const [x1, y1] = pts[i];
-      const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) * 2 || 1;
-      for (let k = 0; k <= n; k++) set(Math.round(x0 + ((x1 - x0) * k) / n), Math.round(y0 + ((y1 - y0) * k) / n));
-    }
-  };
-  // forearm (tapering) and palm
-  for (let x = 0; x <= 9; x++) for (let y = 4; y <= (x < 6 ? 8 : 7); y++) set(x, y);
-  for (let x = 9; x <= 13; x++) for (let y = 3; y <= 8; y++) set(x, y);
-  const fingers = curled
-    ? [
-      [[11, 3], [14, 2], [15, 3]], // thumb
-      [[13, 3], [17, 2], [18, 4], [16, 5]],
-      [[13, 5], [17, 5], [17, 7], [15, 7]],
-      [[13, 6], [16, 7], [16, 9], [14, 9]],
-      [[13, 8], [15, 9], [14, 10]],
-    ]
-    : [
-      [[11, 3], [14, 1], [17, 1], [18, 2]],
-      [[13, 3], [19, 2], [23, 4], [24, 6]],
-      [[13, 5], [20, 4], [24, 7], [24, 9]],
-      [[13, 6], [19, 6], [22, 9], [22, 11]],
-      [[13, 8], [17, 8], [19, 10], [19, 11]],
-    ];
-  for (const f of fingers) line(f);
-  for (let y = 0; y < HAND_H; y++) {
-    for (let x = 0; x < HAND_W; x++) {
-      if (!grid[y][x]) continue;
-      g.fillStyle = '#000';
-      g.fillRect(x, y, 1, 1);
-      // the barest catch of firelight along the top of the fingers
-      if (x > 10 && (y === 0 || !grid[y - 1][x])) {
-        g.fillStyle = 'rgba(120,60,30,0.22)';
-        g.fillRect(x, y, 1, 1);
-      }
-    }
-  }
-  return c;
-}
-
 /** A red-flame copy of the flame sheet: each pixel is remapped by brightness onto a red ramp. */
 function recolorFlames(img) {
   const c = document.createElement('canvas');
@@ -248,8 +191,6 @@ export class Scene {
     this.redFlames = recolorFlames(sprites.flames);
     this.stones = buildStones();
     this.eyes = null; // the rare watcher in the trees
-    this.hand = null; // the rarer thing at the edge of the light
-    this.handPoses = { rest: drawHand(false), curl: drawHand(true) };
     this.tmp = document.createElement('canvas');
     this.tmp.width = FRAME_W; this.tmp.height = FRAME_H;
     this.tctx = this.tmp.getContext('2d');
@@ -361,7 +302,6 @@ export class Scene {
     this.shown += (target - this.shown) * Math.min(1, dt * 2.5);
     this.flare = Math.max(0, this.flare - dt * 1.2);
     this.updateEyes(dt);
-    this.updateHand(dt);
 
     if (this.mode === 'burning') {
       if (Math.random() < dt * (6 + this.heat * 14) * (0.4 + this.shown)) this.spark();
@@ -491,61 +431,6 @@ export class Scene {
     c.fillRect(0, 0, W, H);
 
     this.drawEyes(c);
-    this.drawHand(c);
-  }
-
-  // ------------------------------------------------------------ the hand
-  // On very rare occasions a pitch-black hand creeps in at the very edge of the
-  // screen near the ground, rests a moment, then snaps back into the forest.
-
-  updateHand(dt) {
-    if (!this.hand) {
-      if (!this.eyes && this.mode !== 'sifting' && Math.random() < dt / HAND_EVERY_SECONDS) this.showHand();
-      return;
-    }
-    this.hand.t += dt;
-    if (this.hand.t >= this.hand.end) this.hand = null;
-  }
-
-  showHand() {
-    const creep = rand(1.4, 2.2);
-    const hold = rand(1.2, 2.8);
-    this.hand = {
-      left: Math.random() < 0.5,
-      y: Math.round(this.fb - rand(30, 40)), // among the dark tree trunks, beyond the firelight
-      reach: Math.round(rand(10, 13)), // only the fingers and a little of the palm come into view
-      t: 0, creep, hold, retract: 0.3,
-      twitch: creep + rand(0.3, Math.max(0.4, hold - 0.4)),
-      end: creep + hold + 0.3,
-    };
-  }
-
-  drawHand(c) {
-    const h = this.hand;
-    if (!h) return;
-    let reveal; let pose = 'rest';
-    if (h.t < h.creep) {
-      const k = h.t / h.creep;
-      reveal = h.reach * (1 - (1 - k) ** 2); // slow creep, easing to a stop
-    } else if (h.t < h.creep + h.hold) {
-      reveal = h.reach;
-      if (h.t > h.twitch && h.t < h.twitch + 0.16) pose = 'curl'; // a finger twitch
-    } else {
-      const k = Math.min(1, (h.t - h.creep - h.hold) / h.retract);
-      reveal = h.reach * (1 - k * k) - 3 * k * k; // snatched back, accelerating
-      pose = 'curl';
-    }
-    const img = this.handPoses[pose];
-    const off = Math.round(reveal) - HAND_W;
-    if (h.left) {
-      c.drawImage(img, off, h.y);
-    } else {
-      c.save();
-      c.translate(this.w - off, h.y);
-      c.scale(-1, 1);
-      c.drawImage(img, 0, 0);
-      c.restore();
-    }
   }
 
   // ------------------------------------------------------------ the watcher

@@ -434,7 +434,7 @@ export class Scene {
   }
 
   // ------------------------------------------------------------ the watcher
-  // Very rarely, a pair of green eyes shines out of the dark trees to one side
+  // Very rarely, a pair of ghostly blue-green eyes shines out of the dark trees to one side
   // of the fire, blinks once or twice, and is gone.
 
   updateEyes(dt) {
@@ -462,13 +462,18 @@ export class Scene {
     if (e.blinks.some((b) => e.t > b && e.t < b + 0.14)) return; // eyelids closed
     const a = Math.min(1, e.t / 0.9, (e.dur - e.t) / 0.7);
     if (a <= 0) return;
+    // ghostly blue-green, with a slow shimmer
+    const shimmer = 0.85 + 0.15 * Math.sin(e.t * 5.3);
     for (const ex of [e.x, e.x + e.gap]) {
-      c.globalAlpha = a * 0.28;
-      c.fillStyle = '#5cff5a';
+      c.globalAlpha = a * 0.14 * shimmer;
+      c.fillStyle = '#3fe0d0';
+      c.fillRect(ex - 1, e.y - 1, 3, 3);
+      c.globalAlpha = a * 0.34 * shimmer;
+      c.fillStyle = '#4ff0d8';
       c.fillRect(ex - 1, e.y, 3, 1);
       c.fillRect(ex, e.y - 1, 1, 3);
-      c.globalAlpha = a;
-      c.fillStyle = '#b6ff8c';
+      c.globalAlpha = a * shimmer;
+      c.fillStyle = '#c8fff2';
       c.fillRect(ex, e.y, 1, 1);
     }
     c.globalAlpha = 1;

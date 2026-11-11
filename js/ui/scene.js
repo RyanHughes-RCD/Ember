@@ -23,6 +23,8 @@ export async function loadSprites(base = './assets/sprites/') {
 }
 
 const rand = (a, b) => a + Math.random() * (b - a);
+// On average the eyes appear once per this many seconds spent looking at the fire.
+const EYES_EVERY_SECONDS = 600;
 
 // ---------------------------------------------------------------- fire-ring stones
 
@@ -188,6 +190,7 @@ export class Scene {
     this.redTarget = 0;
     this.redFlames = recolorFlames(sprites.flames);
     this.stones = buildStones();
+    this.eyes = null; // the rare watcher in the trees
     this.tmp = document.createElement('canvas');
     this.tmp.width = FRAME_W; this.tmp.height = FRAME_H;
     this.tctx = this.tmp.getContext('2d');
@@ -298,6 +301,7 @@ export class Scene {
     const target = this.mode === 'burning' ? this.intensity : 0;
     this.shown += (target - this.shown) * Math.min(1, dt * 2.5);
     this.flare = Math.max(0, this.flare - dt * 1.2);
+    this.updateEyes(dt);
 
     if (this.mode === 'burning') {
       if (Math.random() < dt * (6 + this.heat * 14) * (0.4 + this.shown)) this.spark();
@@ -425,6 +429,49 @@ export class Scene {
     v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.55)');
     c.fillStyle = v;
     c.fillRect(0, 0, W, H);
+
+    this.drawEyes(c);
+  }
+
+  // ------------------------------------------------------------ the watcher
+  // Very rarely, a pair of green eyes shines out of the dark trees to one side
+  // of the fire, blinks once or twice, and is gone.
+
+  updateEyes(dt) {
+    if (!this.eyes) {
+      if (this.mode !== 'sifting' && Math.random() < dt / EYES_EVERY_SECONDS) this.showEyes();
+      return;
+    }
+    this.eyes.t += dt;
+    if (this.eyes.t >= this.eyes.dur) this.eyes = null;
+  }
+
+  showEyes() {
+    const left = Math.random() < 0.5;
+    const x = left ? rand(5, this.fx - 25) : rand(this.fx + 22, this.w - 8);
+    const y = this.fb - 26 - rand(0, 22);
+    const dur = rand(4, 7);
+    const blinks = [rand(1.2, dur * 0.45)];
+    if (Math.random() < 0.6) blinks.push(rand(dur * 0.55, dur - 1.2));
+    this.eyes = { x: Math.round(x), y: Math.round(y), gap: Math.random() < 0.5 ? 3 : 4, t: 0, dur, blinks };
+  }
+
+  drawEyes(c) {
+    const e = this.eyes;
+    if (!e) return;
+    if (e.blinks.some((b) => e.t > b && e.t < b + 0.14)) return; // eyelids closed
+    const a = Math.min(1, e.t / 0.9, (e.dur - e.t) / 0.7);
+    if (a <= 0) return;
+    for (const ex of [e.x, e.x + e.gap]) {
+      c.globalAlpha = a * 0.28;
+      c.fillStyle = '#5cff5a';
+      c.fillRect(ex - 1, e.y, 3, 1);
+      c.fillRect(ex, e.y - 1, 1, 3);
+      c.globalAlpha = a;
+      c.fillStyle = '#b6ff8c';
+      c.fillRect(ex, e.y, 1, 1);
+    }
+    c.globalAlpha = 1;
   }
 
   drawFlame(c, lx, ly) {

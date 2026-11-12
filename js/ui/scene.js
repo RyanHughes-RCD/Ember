@@ -301,7 +301,8 @@ export class Scene {
   stop() { this.running = false; }
 
   /** Called by the UI every tick. */
-  setFire({ status, intensity, heat, essence, quality, tint, overlays }) {
+  setFire({ status, intensity, heat, essence, quality, tint, overlays, growth }) {
+    if (growth !== undefined) this.growthTarget = growth;
     if (overlays) this.overlays = overlays;
     if (tint !== undefined) this.redTarget = tint === 'red' ? 1 : 0;
     if (status === 'burning') {
@@ -368,6 +369,7 @@ export class Scene {
     if (this.frameT > frameDur) { this.frameT = 0; this.frame = (this.frame + 1) % 3; }
 
     this.red += (this.redTarget - this.red) * Math.min(1, dt * 1.5);
+    this.growth = (this.growth || 0) + ((this.growthTarget || 0) - (this.growth || 0)) * Math.min(1, dt * 1.2);
     const target = this.mode === 'burning' ? this.intensity : 0;
     this.shown += (target - this.shown) * Math.min(1, dt * 2.5);
     this.flare = Math.max(0, this.flare - dt * 1.2);
@@ -433,7 +435,7 @@ export class Scene {
     else if (this.mode === 'dying') light = Math.max(0, 0.45 * (1 - this.modeT / 4.2)) * flick;
     else if (this.mode === 'ash' || this.mode === 'sifting') light = 0.06;
     if (light > 0) {
-      const r = 40 + 50 * light * (0.7 + this.heat * 0.6);
+      const r = (40 + 50 * light * (0.7 + this.heat * 0.6)) * (1 + (this.growth || 0) * 0.6);
       const gl = c.createRadialGradient(this.fx, this.fb - 14, 2, this.fx, this.fb - 14, r);
       const mag = this.essence;
       let col = mag > 0.35 ? [255 - mag * 120, 150 + mag * 40, 80 + mag * 150] : [255, 150, 60];
@@ -578,8 +580,9 @@ export class Scene {
       tc.fillRect(0, FRAME_H * 0.45, FRAME_W, FRAME_H);
     }
     tc.globalAlpha = 1;
-    const dw = Math.round(FRAME_W * (0.55 + 0.45 * k));
-    const dh = Math.round(FRAME_H * k);
+    const big = 1 + (this.growth || 0); // e.g. each Tribute in the fire makes it bigger
+    const dw = Math.round(FRAME_W * (0.55 + 0.45 * k) * big);
+    const dh = Math.round(FRAME_H * k * big);
     c.drawImage(this.tmp, Math.round(this.fx - dw / 2), ly + FRAME_H - dh + Math.round(4 * (1 - k)), dw, dh);
   }
 

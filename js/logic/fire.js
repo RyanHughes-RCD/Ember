@@ -13,6 +13,27 @@ export function remainingAt(fire, now) {
   return Math.max(0, fire.remaining - elapsed);
 }
 
+/** How much bigger the flames are drawn: each burned material with fireGrowth adds that much (e.g. Tributes). */
+export function fireGrowth(fire, data) {
+  if (fire.status !== 'burning') return 0;
+  let g = 0;
+  for (const [id, n] of Object.entries(fire.materialsBurned)) {
+    const m = data.materialById[id];
+    if (m && m.fireGrowth) g += m.fireGrowth * n;
+  }
+  return g;
+}
+
+/** If enough of a material has gone into this fire to make it unapproachable, the message to show. */
+export function tooHotMessage(fire, data) {
+  if (fire.status !== 'burning') return null;
+  for (const [id, n] of Object.entries(fire.materialsBurned)) {
+    const m = data.materialById[id];
+    if (m && m.tooHotAt && n >= m.tooHotAt) return m.tooHotMessage || 'It burns too hot to approach';
+  }
+  return null;
+}
+
 /** The flame colour right now ('red', …), or null for an ordinary fire. */
 export function tintAt(fire, now) {
   return fire.status === 'burning' && fire.tint && fire.tint.until > now ? fire.tint.color : null;
@@ -130,8 +151,15 @@ export function stoke(state, data, selection, now, rng = Math.random) {
   if (!canStokeNow(state, data, now)) {
     return { ok: false, error: 'The fire is still burning strong. Wait until it runs low.', events };
   }
+  const hot = tooHotMessage(fire, data);
+  if (hot) return { ok: false, error: hot, popup: true, events };
   const v = validateSelection(state, data, selection);
   if (!v.ok) return { ...v, events };
+  // some materials (Skull Fragments) only burn alongside other fuel
+  const chosen = Object.entries(selection).filter(([, n]) => n > 0).map(([id]) => data.materialById[id]);
+  if (chosen.every((m) => m.burnAlone === false)) {
+    return { ok: false, error: chosen[0].burnAloneMessage || 'It won\'t burn on its own', events };
+  }
 
   const lighting = fire.status === 'cold';
   if (lighting) {
@@ -154,6 +182,8 @@ export function stoke(state, data, selection, now, rng = Math.random) {
     fire.materialsCount += n;
     fire.materialsBurned[id] = (fire.materialsBurned[id] || 0) + n;
     state.records.materialsBurned += n;
+    state.records.burned = state.records.burned || {};
+    state.records.burned[id] = (state.records.burned[id] || 0) + n;
     const tint = data.materialById[id].flameTint;
     if (tint) {
       // the flames take this colour while the material burns; more of it keeps them that colour longer

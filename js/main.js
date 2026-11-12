@@ -18,7 +18,7 @@ import { ForageView } from './ui/forageView.js';
 const ui = {
   view: 'fire',
   revealing: false,
-  toast, bump, go, showItem, openSift: () => openSift(),
+  toast, bump, go, showItem, openSift: () => openSift(), popup: (msg) => showPopup(msg),
 };
 
 let game; let scene; let fireView; let materialsView; let journalView; let upgradesView; let forageView;
@@ -131,6 +131,16 @@ function openSheet(html) {
   $('#sheet').hidden = false;
 }
 function closeSheet() { $('#sheet').hidden = true; }
+
+/** A plain message in the same quiet style as the stomp message. */
+function showPopup(message) {
+  openSheet(`
+    <div class="omen">
+      <p class="omen-text">${esc(message)}</p>
+      <button class="btn btn-wide omen-ok" id="omen-ok">OK</button>
+    </div>`);
+  $('#omen-ok').onclick = () => { sfx.tap(); closeSheet(); };
+}
 
 /** "Something stomped out the fire early" — shown once, live or on the next visit. */
 function showPutOutMessage() {

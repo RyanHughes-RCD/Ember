@@ -5,7 +5,7 @@ import { iconUrl } from './icons.js';
 import { sfx } from './audio.js';
 import { effectiveMaterial } from '../logic/stats.js';
 import {
-  isUnlocked, unlockHint, buyMaterial, sellItem, sellAllTreasures, sellValue, treasureValue,
+  isUnlocked, unlockHint, buyMaterial, sellItem, sellAllTreasures, sellValue, treasureValue, canCraft,
 } from '../logic/economy.js';
 
 const SORTS = {
@@ -49,7 +49,7 @@ export class MaterialsView {
     if (act === 'buy') {
       const qty = Number(t.dataset.qty);
       const r = this.game.act((s, d) => buyMaterial(s, d, id, qty));
-      if (r.ok) { sfx.coin(); this.ui.toast(`Bought ${qty} ${this.data.byId[id].name}.`, '', id); this.ui.bump('sparks'); }
+      if (r.ok) { sfx.coin(); this.ui.toast(`${r.crafted ? 'Made' : 'Bought'} ${qty} ${this.data.byId[id].name}.`, '', id); if (!r.crafted) this.ui.bump('sparks'); }
       else { sfx.error(); this.ui.toast(r.error, 'error'); }
     } else if (act === 'sell') {
       const qty = this.state.inventory[id] || 0;
@@ -119,7 +119,7 @@ export class MaterialsView {
 
   renderShop() {
     const s = this.state; const d = this.data;
-    const items = d.materials.filter((m) => m.price);
+    const items = d.materials.filter((m) => m.price || m.recipe);
     this.body.innerHTML = `
       <p class="desc" style="margin:0 2px 10px">Trade Sparks for fuel. Better wood and stranger things appear as your fires grow longer.</p>
       <div class="list">${items.map((m) => {
@@ -134,7 +134,11 @@ export class MaterialsView {
               <span class="rarity r-${m.rarity}">${m.rarity}</span>
               <span class="owned">Owned <b>${s.inventory[m.id] || 0}</b></span></div>
             ${open ? this.statsRow(eff) : `<div class="lock-hint">${esc(unlockHint(d, m.id))}</div>`}
-            ${open ? `<div class="buy-row"><span class="price">✦ ${m.price}</span>
+            ${open && m.recipe ? `<div class="buy-row"><span class="recipe">${Object.entries(m.recipe).map(([ing, n]) => `<span class="ing ${(s.inventory[ing] || 0) >= n ? '' : 'short'}" title="${esc(d.byId[ing].name)}"><img class="px-icon" src="${iconUrl(d.byId[ing])}" alt="">${n}<small>/${s.inventory[ing] || 0}</small></span>`).join('')}</span>
+              <button class="btn btn-small" data-act="buy" data-id="${m.id}" data-qty="1" ${canCraft(s, d, m.id, 1) ? '' : 'disabled'}>Make 1</button>
+              <button class="btn btn-small" data-act="buy" data-id="${m.id}" data-qty="5" ${canCraft(s, d, m.id, 5) ? '' : 'disabled'}>Make 5</button>
+            </div>` : ''}
+            ${open && !m.recipe ? `<div class="buy-row"><span class="price">✦ ${m.price}</span>
               <button class="btn btn-small" data-act="buy" data-id="${m.id}" data-qty="1" ${s.sparks >= m.price ? '' : 'disabled'}>Buy 1</button>
               <button class="btn btn-small" data-act="buy" data-id="${m.id}" data-qty="5" ${s.sparks >= m.price * 5 ? '' : 'disabled'}>Buy 5</button>
             </div>` : ''}

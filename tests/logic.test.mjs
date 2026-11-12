@@ -4,10 +4,10 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { buildData } from '../js/data.js';
 import { createNewSave, migrate, SaveStore, emptyFire } from '../js/logic/state.js';
-import { settle, stoke, collectAsh, remainingAt, canStokeNow, durationAt, tintAt } from '../js/logic/fire.js';
+import { settle, stoke, collectAsh, remainingAt, canStokeNow, durationAt, tintAt, fireGrowth } from '../js/logic/fire.js';
 import { generateRewards } from '../js/logic/rewards.js';
 import {
-  buyMaterial, buyUpgrade, sellAllTreasures, enduranceBonus, accrueGathering, pickUp, nextGatherIn, canForage, forage, isUnlocked, visibleOverlays, meetsRequirement,
+  buyMaterial, buyUpgrade, sellAllTreasures, sellValue, enduranceBonus, accrueGathering, pickUp, nextGatherIn, canForage, forage, isUnlocked, visibleOverlays, meetsRequirement,
 } from '../js/logic/economy.js';
 import { getCapacity, getThreshold, effectiveMaterial } from '../js/logic/stats.js';
 
@@ -421,6 +421,68 @@ test('Coiled Sword can only be bought after the Hearthkeeper milestone', () => {
   s.milestones.e12 = T0;
   assert.equal(buyUpgrade(s, data, 'coiled_sword').ok, true);
   assert.deepEqual(visibleOverlays(s, data).map((o) => o.id), ['coiled_sword'], 'its sword appears in the fire');
+});
+
+test('Tributes are crafted from flowers and birch once an effigy has burned', () => {
+  const s = createNewSave(data, T0);
+  s.inventory.dried_flowers = 8; s.inventory.birch_log = 1;
+  assert.equal(isUnlocked(s, data, 'tribute'), false);
+  assert.equal(buyMaterial(s, data, 'tribute', 1).ok, false, 'not before an effigy burns');
+  s.inventory.wooden_effigy = 1;
+  stoke(s, data, { wooden_effigy: 1 }, T0 + 30_000);
+  assert.equal(isUnlocked(s, data, 'tribute'), true);
+  const sparks = s.sparks;
+  assert.equal(buyMaterial(s, data, 'tribute', 1).ok, true);
+  assert.equal(s.inventory.tribute, 1);
+  assert.equal(s.inventory.dried_flowers, 4); assert.equal(s.inventory.birch_log, undefined);
+  assert.equal(s.sparks, sparks, 'costs materials, not Sparks');
+  assert.equal(buyMaterial(s, data, 'tribute', 1).ok, false, 'no birch left');
+  assert.equal(effectiveMaterial(s, data, 'tribute').burnSeconds, 3600);
+});
+
+test('five Tributes in one fire make it too hot to approach', () => {
+  const s = createNewSave(data, T0);
+  s.upgrades.capacity = 6; s.upgrades.ember_preservation = 3; // stoke earlier, to fit five Tributes in
+  s.inventory.tribute = 6; s.inventory.twigs = 6;
+  const at = T0 + 30_000;
+  assert.equal(stoke(s, data, { tribute: 1 }, at).ok, true);
+  assert.ok(Math.abs(fireGrowth(s.fire, data) - 0.12) < 1e-9, 'each one makes the fire bigger');
+  // stoking opens at 1h15m with Ember Preservation: 35 minutes later 1h10m is left
+  assert.equal(stoke(s, data, { tribute: 4 }, at + 35 * MIN).ok, true, 'the fifth goes in');
+  assert.ok(Math.abs(fireGrowth(s.fire, data) - 0.6) < 1e-9);
+  const t = at + 35 * MIN + 4 * HOUR; // back inside the stoke window
+  settle(s, data, t); // (the fire passes milestones on the way, which add rewards)
+  const before = JSON.stringify(s.inventory);
+  const r = stoke(s, data, { twigs: 1 }, t);
+  assert.equal(r.ok, false);
+  assert.equal(r.popup, true);
+  assert.equal(r.error, 'It burns too hot to approach');
+  assert.equal(JSON.stringify(s.inventory), before, 'nothing is used up');
+  // once it burns out, a new fire is fine
+  settle(s, data, at + 20 * HOUR, seeded(2));
+  assert.equal(s.pendingAsh.rewards.find((x) => x.id === 'skull_fragment').qty >= 1, true, 'five Tributes always leave a Skull Fragment');
+  collectAsh(s, data, at + 20 * HOUR);
+  assert.equal(stoke(s, data, { twigs: 1 }, at + 20 * HOUR).ok, true);
+});
+
+test('Skull Fragments only burn alongside other fuel, and are rare from Tributes', () => {
+  const s = createNewSave(data, T0);
+  s.upgrades.capacity = 2; s.inventory.skull_fragment = 2;
+  const at = T0 + 30_000;
+  const r = stoke(s, data, { skull_fragment: 1 }, at);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /won't burn on its own/);
+  assert.equal(s.inventory.skull_fragment, 2);
+  assert.equal(stoke(s, data, { skull_fragment: 1, twigs: 1 }, at).ok, true);
+  assert.equal(sellValue(data, 'skull_fragment'), 0, 'cannot be sold');
+  assert.equal(buyMaterial(s, data, 'skull_fragment', 1).ok, false, 'cannot be bought');
+  // one or two Tributes rarely leave one
+  let found = 0;
+  for (let i = 0; i < 300; i++) {
+    const f = { ...emptyFire(), materialsBurned: { tribute: 1 }, materialsCount: 1 };
+    if (generateRewards(s, data, f, seeded(100 + i)).some((x) => x.id === 'skull_fragment')) found++;
+  }
+  assert.ok(found > 3 && found < 90, `rare from a single Tribute (${found}/300)`);
 });
 
 test('old basket saves become spawns', () => {

@@ -66,6 +66,9 @@ export function generateRewards(state, data, fire, rng = Math.random) {
         });
       }
     }
+    // e.g. 5 Tributes in one fire always leave at least one Skull Fragment
+    const g = def.guarantee;
+    if (g && count >= g.count && data.byId[g.item]) totals[g.item] = Math.max(totals[g.item] || 0, g.qty || 1);
   }
 
   return Object.entries(totals)

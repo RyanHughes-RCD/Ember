@@ -302,10 +302,12 @@ const toVal = {
   pct: (v) => round((parseFloat(v) || 0) / 100, 4), min: (v) => Math.round((parseFloat(v) || 0) * 60), hrs: (v) => Math.round((parseFloat(v) || 0) * 3600),
   'null-int': (v) => (v === '' ? null : parseInt(v, 10) || 0), 'opt-min': (v) => (v === '' ? undefined : Math.round((parseFloat(v) || 0) * 60)),
   'opt-text': (v) => (v === '' ? undefined : v),
+  'opt-int': (v) => (v === '' ? undefined : parseInt(v, 10) || 0), 'opt-pct': (v) => (v === '' ? undefined : round((parseFloat(v) || 0) / 100, 4)),
 };
 const fromVal = {
   text: (v) => v ?? '', int: (v) => v ?? 0, num: (v) => v ?? 0, pct: (v) => round((v ?? 0) * 100, 2), min: (v) => round((v ?? 0) / 60, 2),
   hrs: (v) => round((v ?? 0) / 3600, 2), 'null-int': (v) => (v == null ? '' : v), 'opt-min': (v) => (v == null ? '' : round(v / 60, 2)), 'opt-text': (v) => v ?? '',
+  'opt-int': (v) => (v == null ? '' : v), 'opt-pct': (v) => (v == null ? '' : round(v * 100, 2)),
 };
 function getPath(o, path) { return path.split('.').reduce((a, k) => (a == null ? a : a[k]), o); }
 function setPath(o, path, v) {
@@ -439,16 +441,28 @@ function deleteBlock(label) {
 /* materials */
 function unlockFields(o) {
   const u = o.unlock || null;
-  const kind = !u ? '' : u.firesCompleted !== undefined ? 'firesCompleted' : u.milestone ? 'milestone' : u.discovered ? 'discovered' : u.longestFire !== undefined ? 'longestFire' : '';
+  const kind = !u ? '' : u.firesCompleted !== undefined ? 'firesCompleted' : u.milestone ? 'milestone' : u.discovered ? 'discovered' : u.longestFire !== undefined ? 'longestFire' : u.burned ? 'burned' : '';
   let val = '';
   if (kind === 'firesCompleted') val = `<label class="f">Fires burned out<input type="number" min="0" data-unlock="firesCompleted" value="${u.firesCompleted}"></label>`;
+  if (kind === 'burned') val = `<label class="f">Material burned<select data-unlock="burned">${work.materials.filter((m) => m !== o).map((m) => `<option value="${m.id}" ${u.burned === m.id ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select></label>`;
   if (kind === 'milestone') val = `<label class="f">Milestone<select data-unlock="milestone">${BASE.milestones.map((m) => `<option value="${m.id}" ${u.milestone === m.id ? 'selected' : ''}>${esc(m.name)} (${round(m.seconds / 3600, 1)}h)</option>`).join('')}</select></label>`;
   if (kind === 'discovered') val = `<label class="f">Found in the ashes<select data-unlock="discovered">${[...work.items, ...work.materials].map((d) => `<option value="${d.id}" ${u.discovered === d.id ? 'selected' : ''}>${esc(d.name)}</option>`).join('')}</select></label>`;
   if (kind === 'longestFire') val = `<label class="f">Longest fire <span class="u">(hours)</span><input type="number" min="0" step="0.5" data-unlock="longestFire" value="${round(u.longestFire / 3600, 2)}"></label>`;
   return `<div class="grid2"><label class="f">In the shop from<select data-unlock-kind>
-    ${[['', 'The start'], ['firesCompleted', 'After some fires burn out'], ['milestone', 'After a milestone'], ['discovered', 'After finding something'], ['longestFire', 'After a long enough fire']].map(([k, n]) => `<option value="${k}" ${k === kind ? 'selected' : ''}>${n}</option>`).join('')}
+    ${[['', 'The start'], ['firesCompleted', 'After some fires burn out'], ['milestone', 'After a milestone'], ['discovered', 'After finding something'], ['burned', 'After burning something'], ['longestFire', 'After a long enough fire']].map(([k, n]) => `<option value="${k}" ${k === kind ? 'selected' : ''}>${n}</option>`).join('')}
   </select></label>${val}</div>`;
 }
+function recipeTable(o) {
+  const rows = Object.entries(o.recipe || {});
+  const opts = (id) => work.materials.filter((m) => m !== o).map((m) => `<option value="${m.id}" ${m.id === id ? 'selected' : ''}>${esc(m.name)}</option>`).join('');
+  return `<p class="help">Shown in the shop with a Make button; it uses these up instead of Sparks.</p>
+  <div class="tablewrap"><table class="rows"><thead><tr><th>Material</th><th>How many</th><th></th></tr></thead><tbody>
+    ${rows.map(([id, n], i) => `<tr><td><select data-recipe-id="${i}">${opts(id)}</select></td>
+      <td><input type="number" min="1" data-recipe-n="${i}" value="${n}"></td>
+      <td class="x"><button class="btn small danger" data-act="recipe-del" data-i="${i}" aria-label="Remove">✕</button></td></tr>`).join('')}
+  </tbody></table></div><div><button class="btn small" data-act="recipe-add">+ Add a material</button></div>`;
+}
+function setRecipeRows(o, rows) { o.recipe = Object.fromEntries(rows.filter(([id]) => id)); }
 function lootTable(o) {
   const opts = (id) => [...work.items, ...work.materials].map((d) => `<option value="${d.id}" ${d.id === id ? 'selected' : ''}>${esc(d.name)}</option>`).join('');
   return `<div class="tablewrap"><table class="rows"><thead><tr><th>Find</th><th>Chance per roll %</th><th>Min</th><th>Max</th><th></th></tr></thead><tbody>
@@ -472,7 +486,8 @@ function materialForm(o) {
     <p class="help">Heat favours fiery finds and Ember Cores, quality favours rarer finds, essence favours magical ones.</p>
   </div>
   <div class="card"><h3>Shop</h3>
-    <div class="grid2">${field('Price', 'price', 'null-int', 'min="0"', 'Sparks — leave empty if not sold')}</div>
+    <div class="seg" role="group"><button data-act="pay-mode" data-mode="sparks" aria-pressed="${!o.recipe}">Bought with Sparks</button><button data-act="pay-mode" data-mode="recipe" aria-pressed="${!!o.recipe}">Made from materials</button></div>
+    ${o.recipe ? recipeTable(o) : `<div class="grid2">${field('Price', 'price', 'null-int', 'min="0"', 'Sparks — leave empty if not sold')}</div>`}
     ${unlockFields(o)}
   </div>
   <div class="card"><h3>Ash rewards</h3><p class="help">Each roll checks every row separately. Ash yield sets how many rolls one of these makes.</p>${lootTable(o)}</div>
@@ -480,6 +495,14 @@ function materialForm(o) {
     <div class="grid2">${selectField('Flame colour while burning', 'flameTint', [['', 'Normal'], ['red', 'Red']])}
       ${field('Puts the fire out after', 'extinguishAfterSeconds', 'opt-min', 'min="0"', 'minutes — empty for never')}</div>
     ${field('Message when it does', 'extinguishMessage', 'opt-text')}
+    <div class="grid2">${field('Makes the fire bigger by', 'fireGrowth', 'opt-pct', 'min="0" step="1"', '% each — empty for no change')}
+      ${field('Too hot to approach after', 'tooHotAt', 'opt-int', 'min="1"', 'in one fire — empty for never')}</div>
+    ${field('Message when stoking is refused', 'tooHotMessage', 'opt-text')}
+    <div class="grid3">${field('Guaranteed find after', 'guarantee.count', 'opt-int', 'min="1"', 'in one fire')}
+      <label class="f">Guaranteed find<select data-guarantee-item><option value="">None</option>${[...work.items, ...work.materials].map((d) => `<option value="${d.id}" ${o.guarantee && o.guarantee.item === d.id ? 'selected' : ''}>${esc(d.name)}</option>`).join('')}</select></label>
+      ${field('At least', 'guarantee.qty', 'opt-int', 'min="1"')}</div>
+    <label class="check"><input type="checkbox" data-burn-alone ${o.burnAlone === false ? 'checked' : ''}> Won't burn on its own (needs other fuel in the same stoke)</label>
+    ${o.burnAlone === false ? field('Message when tried alone', 'burnAloneMessage', 'opt-text') : ''}
   </div>
   ${iconCard(o)}
   ${deleteBlock('material')}`;
@@ -1044,6 +1067,13 @@ function validate() {
       if (!(l.chance >= 0 && l.chance <= 1)) out.push(['error', `${m.name}: chances must be between 0% and 100%.`]);
       if (!(l.min >= 1 && l.max >= l.min)) out.push(['error', `${m.name}: each find needs min ≥ 1 and max ≥ min.`]);
     }
+    for (const [ing, n] of Object.entries(m.recipe || {})) {
+      if (!work.materials.some((x) => x.id === ing)) out.push(['error', `${m.name}: its recipe uses "${ing}", which isn't a material.`]);
+      if (ing === m.id) out.push(['error', `${m.name}: its recipe can't use itself.`]);
+      if (!(n >= 1)) out.push(['error', `${m.name}: recipe amounts must be at least 1.`]);
+    }
+    if (m.guarantee && !ids.has(m.guarantee.item)) out.push(['error', `${m.name}: its guaranteed find "${m.guarantee.item}" doesn't exist.`]);
+    if (m.unlock && m.unlock.burned && !work.materials.some((x) => x.id === m.unlock.burned)) out.push(['error', `${m.name}: unlocks after burning "${m.unlock.burned}", which isn't a material.`]);
     const u = m.unlock;
     if (u && u.milestone && !BASE.milestones.some((x) => x.id === u.milestone)) out.push(['error', `${m.name}: unlocks after an unknown milestone.`]);
     if (u && u.discovered && !ids.has(u.discovered)) out.push(['error', `${m.name}: unlocks after finding "${u.discovered}", which doesn't exist.`]);
@@ -1214,6 +1244,12 @@ document.addEventListener('click', async (e) => {
   else if (act === 'del') deleteCurrent(false);
   else if (act === 'del-yes') deleteCurrent(true);
   else if (act === 'del-no') renderForm();
+  else if (act === 'pay-mode') {
+    if (b.dataset.mode === 'recipe' && !o.recipe) { o.recipe = { [work.materials.find((m) => m !== o).id]: 1 }; o.price = null; }
+    if (b.dataset.mode === 'sparks' && o.recipe) { delete o.recipe; o.price = o.price || 20; }
+    afterChange();
+  } else if (act === 'recipe-add') { const rows = Object.entries(o.recipe || {}); const next = work.materials.find((m) => m !== o && !(m.id in (o.recipe || {}))); if (next) { rows.push([next.id, 1]); setRecipeRows(o, rows); } afterChange(); }
+  else if (act === 'recipe-del') { const rows = Object.entries(o.recipe || {}); rows.splice(Number(b.dataset.i), 1); setRecipeRows(o, rows); if (!rows.length) { delete o.recipe; o.price = null; } afterChange(); }
   else if (act === 'loot-add') { o.loot.push({ item: 'fine_ash', chance: 0.3, min: 1, max: 1 }); afterChange(); }
   else if (act === 'loot-del') { o.loot.splice(Number(b.dataset.i), 1); afterChange(); }
   else if (act === 'find-add') { (o.effect.finds = o.effect.finds || []).push({ id: work.materials[0].id, chance: 0.05 }); afterChange(); }
@@ -1272,9 +1308,23 @@ document.addEventListener('change', (e) => {
   const t = e.target; const o = cur();
   if (t.closest('.pe')) return;
   if (t.matches('select[data-k]')) { afterChange(); return; }
+  if (t.matches('[data-recipe-id]') || t.matches('[data-recipe-n]')) {
+    const rows = Object.entries(o.recipe || {}); const i = Number(t.dataset.recipeId ?? t.dataset.recipeN);
+    if (t.dataset.recipeId !== undefined) rows[i][0] = t.value; else rows[i][1] = Math.max(1, parseInt(t.value, 10) || 1);
+    setRecipeRows(o, rows); afterChange(); return;
+  }
+  if (t.matches('[data-guarantee-item]')) {
+    if (!t.value) delete o.guarantee; else o.guarantee = { count: (o.guarantee && o.guarantee.count) || 5, item: t.value, qty: (o.guarantee && o.guarantee.qty) || 1 };
+    afterChange(); return;
+  }
+  if (t.matches('[data-burn-alone]')) {
+    if (t.checked) o.burnAlone = false; else { delete o.burnAlone; delete o.burnAloneMessage; }
+    afterChange(); return;
+  }
   if (t.matches('[data-unlock-kind]')) {
     const k = t.value;
-    o.unlock = !k ? null : k === 'firesCompleted' ? { firesCompleted: 1 } : k === 'milestone' ? { milestone: BASE.milestones[0].id } : k === 'discovered' ? { discovered: work.items[0].id } : { longestFire: 3600 };
+    o.unlock = !k ? null : k === 'firesCompleted' ? { firesCompleted: 1 } : k === 'milestone' ? { milestone: BASE.milestones[0].id } : k === 'discovered' ? { discovered: work.items[0].id }
+      : k === 'burned' ? { burned: (work.materials.find((m) => m !== o) || work.materials[0]).id } : { longestFire: 3600 };
     afterChange(); return;
   }
   if (t.matches('[data-unlock]')) { const k = t.dataset.unlock; o.unlock = { [k]: k === 'longestFire' ? Math.round((parseFloat(t.value) || 0) * 3600) : k === 'firesCompleted' ? parseInt(t.value, 10) || 0 : t.value }; afterChange({ soft: true }); return; }

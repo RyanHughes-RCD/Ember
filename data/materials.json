@@ -187,5 +187,37 @@
       { "item": "fine_ash", "chance": 0.6, "min": 1, "max": 2 },
       { "item": "charcoal", "chance": 0.4, "min": 1, "max": 1 }
     ]
+  },
+  {
+    "id": "tribute", "name": "Tribute", "category": "flora", "rarity": "rare",
+    "description": "Dried flowers bound to a birch frame, made to be given to the fire.",
+    "icon": { "shape": "charm", "palette": ["#1a100c", "#6a4a2a", "#c8a070", "#e8c4d8", "#fbf0f6"] },
+    "burnSeconds": 3600, "heat": 1, "quality": 4, "essence": 18, "ashYield": 4,
+    "price": null, "recipe": { "dried_flowers": 4, "birch_log": 1 }, "unlock": { "burned": "wooden_effigy" },
+    "fireGrowth": 0.12,
+    "tooHotAt": 5,
+    "tooHotMessage": "It burns too hot to approach",
+    "guarantee": { "count": 5, "item": "skull_fragment", "qty": 1 },
+    "loot": [
+      { "item": "fine_ash", "chance": 0.5, "min": 1, "max": 2 },
+      { "item": "pressed_petal", "chance": 0.4, "min": 1, "max": 2 },
+      { "item": "curled_bark", "chance": 0.3, "min": 1, "max": 1 },
+      { "item": "magic_dust", "chance": 0.2, "min": 1, "max": 1 },
+      { "item": "spirit_fragment", "chance": 0.05, "min": 1, "max": 1 },
+      { "item": "skull_fragment", "chance": 0.03, "min": 1, "max": 1 }
+    ]
+  },
+  {
+    "id": "skull_fragment", "name": "Skull Fragment", "category": "minerals", "rarity": "epic",
+    "description": "A curved piece of old bone, scorched black.",
+    "icon": { "shape": "shard", "palette": ["#14100c", "#5a5044", "#a89c88", "#ddd2bc", "#f6f0e2"] },
+    "burnSeconds": 600, "heat": 0, "quality": 6, "essence": 14, "ashYield": 1,
+    "price": null, "unlock": null,
+    "burnAlone": false,
+    "burnAloneMessage": "It won't burn on its own",
+    "loot": [
+      { "item": "fine_ash", "chance": 0.6, "min": 1, "max": 1 },
+      { "item": "magic_dust", "chance": 0.25, "min": 1, "max": 1 }
+    ]
   }
 ]

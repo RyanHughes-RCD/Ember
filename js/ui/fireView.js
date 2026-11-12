@@ -4,7 +4,7 @@ import { $, esc, fmtClock, fmtDur, fmtStat } from './util.js';
 import { iconUrl, uiIconUrl } from './icons.js';
 import { sfx } from './audio.js';
 import {
-  remainingAt, durationAt, canStokeNow, stoke, selectionSeconds, tintAt,
+  remainingAt, durationAt, canStokeNow, stoke, selectionSeconds, tintAt, fireGrowth,
 } from '../logic/fire.js';
 import { getCapacity, getThreshold, effectiveMaterial } from '../logic/stats.js';
 import { fireAverages } from '../logic/rewards.js';
@@ -98,7 +98,7 @@ export class FireView {
     const res = this.game.act((s, d, now) => stoke(s, d, sel, now));
     if (!res.ok) {
       sfx.error();
-      this.ui.toast(res.error, 'error');
+      if (res.popup) this.ui.popup(res.error); else this.ui.toast(res.error, 'error');
       return;
     }
     const icons = [];
@@ -149,6 +149,7 @@ export class FireView {
       essence: Math.min(1, avg.essence / 20),
       quality: Math.min(1, avg.quality / 12),
       tint: tintAt(fire, now),
+      growth: fireGrowth(fire, this.data),
       overlays: visibleOverlays(s, this.data),
     });
 

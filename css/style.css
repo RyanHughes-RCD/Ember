@@ -277,6 +277,11 @@ img.px-icon, canvas, .pixel { image-rendering: pixelated; image-rendering: crisp
 .loot-row img { width: 24px; height: 24px; display: block; margin: auto; }
 .buy-row { display: flex; gap: 6px; margin-top: 8px; align-items: center; }
 .buy-row .price { font-weight: 700; color: var(--amber); margin-right: auto; }
+.buy-row .recipe { display: flex; gap: 8px; margin-right: auto; flex-wrap: wrap; }
+.buy-row .ing { display: inline-flex; align-items: center; gap: 2px; color: var(--text); font-size: 13px; }
+.buy-row .ing img { width: 22px; height: 22px; }
+.buy-row .ing small { color: var(--muted); font-size: 10px; }
+.buy-row .ing.short { color: var(--bad); }
 .locked { opacity: 0.6; }
 .lock-hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
 .lock-hint::before { content: '🔒 '; }

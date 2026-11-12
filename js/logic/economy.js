@@ -60,6 +60,7 @@ export function isUnlocked(state, data, materialId) {
   if (u.milestone) return Boolean(state.milestones[u.milestone]);
   if (u.discovered) return Boolean(state.discoveries[u.discovered]);
   if (u.longestFire !== undefined) return state.records.longestFire >= u.longestFire;
+  if (u.burned) return ((state.records.burned || {})[u.burned] || 0) > 0;
   return false;
 }
 
@@ -74,14 +75,32 @@ export function unlockHint(data, materialId) {
     return m ? `Reach the “${m.name}” milestone` : 'Reach a milestone';
   }
   if (u.discovered) return `Find ${data.byId[u.discovered].name} in the ashes`;
+  if (u.burned) return `Burn a ${data.byId[u.burned].name}`;
   return 'Locked';
+}
+
+/** Can `qty` of this be crafted from what's in the inventory? */
+export function canCraft(state, data, id, qty = 1) {
+  const m = data.materialById[id];
+  if (!m || !m.recipe) return false;
+  return Object.entries(m.recipe).every(([ing, n]) => (state.inventory[ing] || 0) >= n * qty);
 }
 
 export function buyMaterial(state, data, id, qty = 1) {
   const m = data.materialById[id];
-  if (!m || !m.price) return { ok: false, error: 'Not for sale.' };
+  if (!m || (!m.price && !m.recipe)) return { ok: false, error: 'Not for sale.' };
   if (!isUnlocked(state, data, id)) return { ok: false, error: 'Not available yet.' };
   if (!Number.isInteger(qty) || qty < 1) return { ok: false, error: 'Invalid amount.' };
+  if (m.recipe) { // crafted from materials instead of bought with Sparks
+    if (!canCraft(state, data, id, qty)) return { ok: false, error: 'Not enough materials.' };
+    for (const [ing, n] of Object.entries(m.recipe)) {
+      state.inventory[ing] -= n * qty;
+      if (state.inventory[ing] <= 0) delete state.inventory[ing];
+    }
+    state.inventory[id] = (state.inventory[id] || 0) + qty;
+    state.seenMaterials[id] = true;
+    return { ok: true, crafted: true };
+  }
   const cost = m.price * qty;
   if (state.sparks < cost) return { ok: false, error: 'Not enough Sparks.' };
   state.sparks -= cost;

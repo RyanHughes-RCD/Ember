@@ -81,8 +81,7 @@
       "finds": [
         { "id": "pine_log", "chance": 0.12 },
         { "id": "birch_log", "chance": 0.03 }
-      ],
-      "campsiteProp": "hatchet"
+      ]
     },
     "costs": [ { "sparks": 400, "cores": 3 } ]
   }

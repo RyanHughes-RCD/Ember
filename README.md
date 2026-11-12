@@ -88,6 +88,7 @@ data/                   ALL balancing lives here
   items.json            Reward items: rarity, value, tags (heat/magic), icons
   upgrades.json         Upgrades: effects and per-level costs
   milestones.json       Endurance milestones and rewards
+  overlays.json         Campsite overlays: sprites around the fire, their layer, light and unlock rule
 js/
   main.js               Entry point: wiring, reveal flow, sheets, timers
   game.js               Owns state; sync → mutate → save for every action
@@ -108,8 +109,31 @@ tools/
   build_sprites.py      Rebuilds assets/sprites from assets/source (needs Pillow + numpy)
   build_icon.py         Rebuilds the app icons in assets/icons (needs Pillow)
   icon-preview.html     Dev page showing every item icon
+  workshop/             Ember Workshop editor (see below); build_workshop.py, apply_workshop.py
 tests/                  Unit tests + end-to-end playthrough
 ```
+
+## Ember Workshop (editor)
+
+`tools/workshop/workshop.html` is a visual editor for the game's content, published as a claude.ai
+artifact. It edits materials (stats, shop rules, ash rewards, icons), ash items, upgrades and their
+sections, and **campsite overlays**: pixel art placed around the fire on a chosen layer, optionally
+shown only after an upgrade, milestone or find. You can draw pixel art in it or import a PNG (it finds
+the art's pixel grid, removes the background and keeps a small palette). The campfire preview uses
+the game's own drawing code, so placements match the game.
+
+- `python3 tools/build_workshop.py out.html` bundles the current data, sprites and drawing code into
+  one page. Rebuild and republish it after the game's data changes, so the workshop starts from the
+  latest version.
+- Work saves to the artifact's own store, where Claude can read it and apply it. You can also
+  download a change file and run `python3 tools/apply_workshop.py embers-workshop.json`. That
+  rewrites `data/materials.json`, `items.json`, `upgrades.json`, `overlays.json` and the upgrade
+  sections in `config.json`, checks them with the game's loader, and restores everything if the
+  check fails.
+
+Inline pixel art (used by icons and overlays) looks like this:
+`{ "w": 3, "h": 2, "rows": ["ab.", ".ba"], "colors": { "a": "#3a2a18", "b": "#c08850" } }`.
+Each row is `w` characters long, `.` is transparent, and every other character is a key in `colors`.
 
 ## Tuning the game
 

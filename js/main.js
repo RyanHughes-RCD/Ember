@@ -369,7 +369,8 @@ function tick() {
 
 async function boot() {
   try {
-    const [data, sprites] = await Promise.all([loadData('./data/'), loadSprites('./assets/sprites/')]);
+    const data = await loadData('./data/');
+    const sprites = await loadSprites('./assets/sprites/', data.overlays.filter((o) => o.sprite).map((o) => o.sprite));
     game = new Game(data, window.localStorage);
     game.on(onGameEvent);
     const bootEvents = game.boot();

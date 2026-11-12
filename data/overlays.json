@@ -1,0 +1,10 @@
+[
+  {
+    "id": "hatchet", "name": "Hatchet",
+    "sprite": "hatchet",
+    "layer": "ground-front",
+    "x": 18, "y": 9,
+    "brightness": 1.18, "light": 0.15, "shadow": true, "flip": false,
+    "requires": { "upgrade": "improved_foraging" }
+  }
+]

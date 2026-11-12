@@ -16,8 +16,9 @@ function loadImage(src) {
   });
 }
 
-export async function loadSprites(base = './assets/sprites/') {
-  const names = ['forest_night', 'flames', 'logs', 'embers', 'ashpile', 'charred', 'hatchet', 'hatchet_full'];
+/** Loads the scene's sprites, plus any extra sprite files named by campsite overlays. */
+export async function loadSprites(base = './assets/sprites/', extra = []) {
+  const names = [...new Set(['forest_night', 'flames', 'logs', 'embers', 'ashpile', 'charred', ...extra])];
   const imgs = await Promise.all(names.map((n) => loadImage(`${base}${n}.png`)));
   return Object.fromEntries(names.map((n, i) => [n, imgs[i]]));
 }
@@ -25,9 +26,6 @@ export async function loadSprites(base = './assets/sprites/') {
 const rand = (a, b) => a + Math.random() * (b - a);
 // On average the eyes appear once per this many seconds spent looking at the fire.
 const EYES_EVERY_SECONDS = 600;
-// The hatchet lying on the ground beside the fire ('hatchet' = lying flat, 'hatchet_full' = full-size upright art).
-const HATCHET_SPRITE = 'hatchet';
-const HATCHET_BRIGHTNESS = 1.18; // a touch lighter than the source art so it reads in the shadows
 
 // ---------------------------------------------------------------- fire-ring stones
 
@@ -150,6 +148,33 @@ function buildStones() {
   return out.sort((p, q) => p.dy - q.dy);
 }
 
+/** Inline pixel art ({ w, h, rows, colors }) drawn onto a canvas. */
+export function artCanvas(art) {
+  const c = document.createElement('canvas');
+  c.width = art.w; c.height = art.h;
+  const g = c.getContext('2d');
+  art.rows.forEach((row, y) => {
+    for (let x = 0; x < row.length; x++) {
+      const col = art.colors[row[x]];
+      if (row[x] === '.' || !col) continue;
+      g.fillStyle = col;
+      g.fillRect(x, y, 1, 1);
+    }
+  });
+  return c;
+}
+
+/** A horizontally mirrored copy of a sprite. */
+function flipped(img) {
+  const c = document.createElement('canvas');
+  c.width = img.width; c.height = img.height;
+  const g = c.getContext('2d');
+  g.translate(img.width, 0);
+  g.scale(-1, 1);
+  g.drawImage(img, 0, 0);
+  return c;
+}
+
 /** A copy of a sprite with every colour scaled by `k` (1 = unchanged). */
 function brighten(img, k) {
   const c = document.createElement('canvas');
@@ -232,6 +257,8 @@ export class Scene {
     this.redTarget = 0;
     this.redFlames = recolorFlames(sprites.flames);
     this.stones = buildStones();
+    this.overlays = []; // campsite overlays currently shown (see drawOverlays)
+    this.overlayCache = new Map();
     this.eyes = null; // the rare watcher in the trees
     this.tmp = document.createElement('canvas');
     this.tmp.width = FRAME_W; this.tmp.height = FRAME_H;
@@ -274,8 +301,8 @@ export class Scene {
   stop() { this.running = false; }
 
   /** Called by the UI every tick. */
-  setFire({ status, intensity, heat, essence, quality, tint, props }) {
-    if (props) this.props = props;
+  setFire({ status, intensity, heat, essence, quality, tint, overlays }) {
+    if (overlays) this.overlays = overlays;
     if (tint !== undefined) this.redTarget = tint === 'red' ? 1 : 0;
     if (status === 'burning') {
       if (this.mode !== 'burning') { this.mode = 'burning'; this.shown = 0.2; }
@@ -390,6 +417,7 @@ export class Scene {
       c.fillStyle = tw > 0.7 ? '#cfd6ff' : '#5a6080';
       c.fillRect(Math.floor(s.x * W), Math.floor(s.y * (forestY + 26)), 1, 1);
     }
+    this.drawOverlays(c, 'sky');
     c.drawImage(this.s.forest_night, Math.round((W - FOREST_W) / 2), forestY);
     // ground in front of the forest
     const gy = this.fb - 26;
@@ -419,6 +447,7 @@ export class Scene {
       c.globalCompositeOperation = 'source-over';
     }
 
+    this.drawOverlays(c, 'ground-back');
     this.drawStones(c, true);
 
     const lx = this.fx - FRAME_W / 2;
@@ -449,7 +478,7 @@ export class Scene {
     }
 
     this.drawStones(c, false);
-    this.drawHatchet(c);
+    this.drawOverlays(c, 'ground-front');
 
     for (const d of this.drops) c.drawImage(d.img, Math.round(d.x), Math.round(d.y), 8, 8);
 
@@ -467,6 +496,8 @@ export class Scene {
       }
     }
     c.globalAlpha = 1;
+
+    this.drawOverlays(c, 'overlay');
 
     // vignette
     const v = c.createRadialGradient(this.fx, this.fb - 20, 30, this.fx, this.fb - 30, Math.max(100, H * 0.7));
@@ -552,31 +583,51 @@ export class Scene {
     c.drawImage(this.tmp, Math.round(this.fx - dw / 2), ly + FRAME_H - dh + Math.round(4 * (1 - k)), dw, dh);
   }
 
-  /** A hatchet lying in the shadows at the bottom-right corner of the clearing (partly out of view). */
-  drawHatchet(c) {
-    if (!(this.props || []).includes('hatchet')) return; // appears once Improved Foraging is bought
-    if (!this.hatchetImg) this.hatchetImg = brighten(this.s[HATCHET_SPRITE], HATCHET_BRIGHTNESS);
-    const img = this.hatchetImg;
-    if (!this.hatchetRim) this.hatchetRim = topEdges(img);
-    if (!this.hatchetShadow) this.hatchetShadow = silhouette(img, '#050403');
-    const x = Math.round(this.w - img.width - 6);
-    const y = Math.round(this.fb + 9 - img.height);
-    // its shadow hugs the whole outline, just below it on the ground
-    c.globalAlpha = 0.25;
-    c.drawImage(this.hatchetShadow, x - 1, y + 1);
-    c.drawImage(this.hatchetShadow, x + 1, y + 1);
-    c.globalAlpha = 0.55;
-    c.drawImage(this.hatchetShadow, x, y + 1);
-    c.globalAlpha = 1;
-    c.drawImage(img, x, y);
-    // the top edges catch the firelight (red while an effigy burns, fading as the fire dies)
-    const glow = this.mode === 'burning' ? 0.45 + this.shown * 0.4 + this.flare * 0.2
-      : this.mode === 'dying' ? 0.25 * Math.max(0, 1 - this.modeT / 4.2) : 0;
-    if (glow > 0) {
-      c.fillStyle = `rgb(${[255, 150 - 100 * this.red, 70 - 30 * this.red].map(Math.round).join(',')})`;
-      c.globalAlpha = Math.min(0.18, glow * 0.15); // only a faint catch of light out here
-      for (const [px, py] of this.hatchetRim) c.fillRect(x + px, y + py, 1, 1);
+  // ------------------------------------------------------------ campsite overlays
+  // Data-driven sprites placed around the camp (data/overlays.json). Each is anchored by its
+  // bottom-left corner at (fire centre + x, fire base + y), in art pixels, and drawn on a layer:
+  // sky (behind the trees), ground-back (behind the stone ring), ground-front (in front of it)
+  // or overlay (over everything, under the vignette).
+
+  prepareOverlay(o) {
+    const key = JSON.stringify(o);
+    const hit = this.overlayCache.get(o.id);
+    if (hit && hit.key === key) return hit;
+    let base = o.art ? artCanvas(o.art) : this.s[o.sprite];
+    if (!base || !base.width) return null;
+    if (o.flip) base = flipped(base);
+    const img = o.brightness && o.brightness !== 1 ? brighten(base, o.brightness) : base;
+    const prepared = { key, img, rim: o.light ? topEdges(img) : [], shadow: o.shadow ? silhouette(img, '#050403') : null };
+    this.overlayCache.set(o.id, prepared);
+    return prepared;
+  }
+
+  drawOverlays(c, layer) {
+    for (const o of this.overlays) {
+      if (o.layer !== layer || o.hidden) continue;
+      const p = this.prepareOverlay(o);
+      if (!p) continue;
+      const x = Math.round(this.fx + (o.x || 0));
+      const y = Math.round(this.fb + (o.y || 0) - p.img.height);
+      if (p.shadow) { // hugs the whole outline, just below it on the ground
+        c.globalAlpha = 0.25;
+        c.drawImage(p.shadow, x - 1, y + 1);
+        c.drawImage(p.shadow, x + 1, y + 1);
+        c.globalAlpha = 0.55;
+        c.drawImage(p.shadow, x, y + 1);
+      }
+      c.globalAlpha = o.opacity ?? 1;
+      c.drawImage(p.img, x, y);
       c.globalAlpha = 1;
+      // top edges catch the firelight (red while an effigy burns, fading as the fire dies)
+      const glow = this.mode === 'burning' ? 0.45 + this.shown * 0.4 + this.flare * 0.2
+        : this.mode === 'dying' ? 0.25 * Math.max(0, 1 - this.modeT / 4.2) : 0;
+      if (o.light && glow > 0) {
+        c.fillStyle = `rgb(${[255, 150 - 100 * this.red, 70 - 30 * this.red].map(Math.round).join(',')})`;
+        c.globalAlpha = Math.min(o.light * 1.2, glow * o.light);
+        for (const [px, py] of p.rim) c.fillRect(x + px, y + py, 1, 1);
+        c.globalAlpha = 1;
+      }
     }
   }
 

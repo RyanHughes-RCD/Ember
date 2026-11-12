@@ -299,8 +299,34 @@ function render(shape, palette, silhouette) {
   return canvas.toDataURL();
 }
 
-/** Data URL for an item's icon. `def.icon = { shape, palette }`. */
+/** Inline pixel art ({ w, h, rows, colors }) as a data URL; a silhouette keeps only the shape. */
+export function artUrl(art, { silhouette = false } = {}) {
+  const key = `art|${JSON.stringify(art)}|${silhouette}`;
+  if (cache.has(key)) return cache.get(key);
+  const canvas = document.createElement('canvas');
+  canvas.width = art.w; canvas.height = art.h;
+  const ctx = canvas.getContext('2d');
+  const on = (x, y) => y >= 0 && y < art.h && x >= 0 && x < art.w && art.rows[y][x] !== '.';
+  for (let y = 0; y < art.h; y++) {
+    for (let x = 0; x < art.w; x++) {
+      if (!on(x, y)) continue;
+      if (silhouette) {
+        const edge = !on(x - 1, y) || !on(x + 1, y) || !on(x, y - 1) || !on(x, y + 1);
+        ctx.fillStyle = edge ? '#4a3f37' : '#1d1815';
+      } else {
+        ctx.fillStyle = art.colors[art.rows[y][x]];
+      }
+      ctx.fillRect(x, y, 1, 1);
+    }
+  }
+  const url = canvas.toDataURL();
+  cache.set(key, url);
+  return url;
+}
+
+/** Data URL for an item's icon: `def.icon = { shape, palette }` or `{ art }` (hand-drawn pixel art). */
 export function iconUrl(def, { silhouette = false } = {}) {
+  if (def.icon && def.icon.art) return artUrl(def.icon.art, { silhouette });
   const icon = def.icon || { shape: 'lump', palette: UI_PALETTE };
   const key = `${icon.shape}|${icon.palette.join(',')}|${silhouette}`;
   if (!cache.has(key)) cache.set(key, render(icon.shape, icon.palette, silhouette));
@@ -321,3 +347,14 @@ export function iconImg(def, opts = {}) {
 }
 
 export const ICON_SHAPES = Object.keys(SHAPES);
+
+/** A shape icon turned into editable pixel art (used by the workshop). */
+export function shapeToArt(shape, palette) {
+  const g = grid();
+  (SHAPES[shape] || SHAPES.lump)(g, P);
+  const out = P.outline(g);
+  const keys = ['a', 'b', 'c', 'd', 'e'];
+  const colors = {};
+  palette.forEach((col, i) => { colors[keys[i]] = col; });
+  return { w: N, h: N, rows: out.map((row) => row.map((c) => (c ? keys[c - 1] : '.')).join('')), colors };
+}

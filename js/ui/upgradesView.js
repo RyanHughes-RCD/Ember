@@ -1,7 +1,7 @@
 // Permanent upgrades, split into Firekeeping and Ash Recovery.
 
 import { $, esc, fmtClock, pct } from './util.js';
-import { uiIconUrl } from './icons.js';
+import { uiIconUrl, artUrl } from './icons.js';
 import { sfx } from './audio.js';
 import { upgradeLevel } from '../logic/stats.js';
 import { buyUpgrade, nextUpgradeCost } from '../logic/economy.js';
@@ -52,6 +52,13 @@ export class UpgradesView {
     });
   }
 
+  iconSrc(u) {
+    if (u.iconArt) return artUrl(u.iconArt);
+    if (u.iconSprite) return `assets/sprites/${u.iconSprite}.png`;
+    const g = (this.game.data.config.upgradeGroups || []).find((x) => x.id === u.group);
+    return uiIconUrl(u.icon || 'flame', (g && g.iconPalette) || ICON_PALETTES[u.group]);
+  }
+
   card(u) {
     const s = this.game.state; const d = this.game.data;
     const lvl = upgradeLevel(s, u.id);
@@ -61,7 +68,7 @@ export class UpgradesView {
     const afford = cost && s.sparks >= cost.sparks && s.cores >= cost.cores;
     const costTxt = cost ? `✦ ${cost.sparks}${cost.cores ? ` <span class="c-cores">+ ◆ ${cost.cores}</span>` : ''}` : '';
     return `<div class="card up-card">
-      <img class="px-icon${u.iconSprite ? ' sprite-icon' : ''}" src="${u.iconSprite ? `assets/sprites/${u.iconSprite}.png` : uiIconUrl(u.icon, ICON_PALETTES[u.group])}" alt="">
+      <img class="px-icon${u.iconSprite || u.iconArt ? ' sprite-icon' : ''}" src="${this.iconSrc(u)}" alt="">
       <div>
         <div class="up-top"><span class="name">${esc(u.name)}</span><span class="pips" title="Level ${lvl} of ${max}">${pips}</span></div>
         <p class="desc" style="margin:2px 0">${esc(u.description)}</p>
@@ -77,21 +84,13 @@ export class UpgradesView {
   render() {
     const d = this.game.data;
     const group = (g) => d.upgrades.filter((u) => u.group === g).map((u) => this.card(u)).join('');
-    this.body.innerHTML = `
+    const groups = d.config.upgradeGroups || [
+      { id: 'firekeeping', name: 'Firekeeping', blurb: '' }, { id: 'ash', name: 'Ash Recovery', blurb: '' }];
+    this.body.innerHTML = groups.filter((g) => d.upgrades.some((u) => u.group === g.id)).map((g) => `
       <div class="up-group">
-        <h3 class="section-title">Firekeeping</h3>
-        <p>Tend the flame: more fuel per stoke, longer burns, richer characteristics.</p>
-        <div class="list">${group('firekeeping')}</div>
-      </div>
-      <div class="up-group">
-        <h3 class="section-title">Ash Recovery</h3>
-        <p>Find more, and finer things, in what remains.</p>
-        <div class="list">${group('ash')}</div>
-      </div>
-      <div class="up-group">
-        <h3 class="section-title">Campsite Upgrades</h3>
-        <p>Make the clearing around the fire your own.</p>
-        <div class="list">${group('campsite')}</div>
-      </div>`;
+        <h3 class="section-title">${esc(g.name)}</h3>
+        ${g.blurb ? `<p>${esc(g.blurb)}</p>` : ''}
+        <div class="list">${group(g.id)}</div>
+      </div>`).join('');
   }
 }

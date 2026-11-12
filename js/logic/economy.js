@@ -187,9 +187,19 @@ export function forageFinds(state, data) {
   return out;
 }
 
-/** Campsite props unlocked by upgrades (e.g. the hatchet by the fire). */
-export function campsiteProps(state, data) {
-  return data.upgrades.filter((u) => u.effect.campsiteProp && upgradeLevel(state, u.id) > 0).map((u) => u.effect.campsiteProp);
+/** Whether the player meets a requirement like { upgrade }, { milestone }, { discovered } or { firesCompleted }. */
+export function meetsRequirement(state, data, req) {
+  if (!req) return true;
+  if (req.upgrade && upgradeLevel(state, req.upgrade) < (req.level || 1)) return false;
+  if (req.milestone && !state.milestones[req.milestone]) return false;
+  if (req.discovered && !state.discoveries[req.discovered] && !state.seenMaterials[req.discovered]) return false;
+  if (req.firesCompleted !== undefined && state.records.firesCompleted < req.firesCompleted) return false;
+  return true;
+}
+
+/** Campsite overlays the player can see right now (e.g. the hatchet once Improved Foraging is bought). */
+export function visibleOverlays(state, data) {
+  return (data.overlays || []).filter((o) => meetsRequirement(state, data, o.requires));
 }
 
 /** Advance foraging to `now`, spawning items in the order their timers complete. */

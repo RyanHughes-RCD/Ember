@@ -9,7 +9,7 @@ import {
 import { getCapacity, getThreshold, effectiveMaterial } from '../logic/stats.js';
 import { fireAverages } from '../logic/rewards.js';
 import {
-  spawnCount, nextGatherIn, burnableCount, campsiteProps,
+  spawnCount, nextGatherIn, burnableCount, visibleOverlays,
 } from '../logic/economy.js';
 
 export class FireView {
@@ -149,7 +149,7 @@ export class FireView {
       essence: Math.min(1, avg.essence / 20),
       quality: Math.min(1, avg.quality / 12),
       tint: tintAt(fire, now),
-      props: campsiteProps(s, this.data),
+      overlays: visibleOverlays(s, this.data),
     });
 
     // Rebuild the panel only when its structure changes (not every tick).

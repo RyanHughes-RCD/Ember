@@ -11,6 +11,15 @@
     "legendary": "#ffb52e"
   },
   "categories": ["wood", "flora", "fungi", "minerals"],
+  "upgradeGroups": [
+    { "id": "firekeeping", "name": "Firekeeping", "blurb": "Tend the flame: more fuel per stoke, longer burns, richer characteristics.",
+      "iconPalette": ["#1a0c06", "#6a2e10", "#c0602a", "#f0a040", "#ffe6a0"] },
+    { "id": "ash", "name": "Ash Recovery", "blurb": "Find more, and finer things, in what remains.",
+      "iconPalette": ["#121014", "#3e3a44", "#7a7480", "#b8b0bc", "#f0e8ff"] },
+    { "id": "campsite", "name": "Campsite Upgrades", "blurb": "Make the clearing around the fire your own.",
+      "iconPalette": ["#0e140a", "#2e4a22", "#5a7a3a", "#9ab86a", "#e0f0b0"] }
+  ],
+  "overlayLayers": ["sky", "ground-back", "ground-front", "overlay"],
   "currency": {
     "primary": { "id": "sparks", "name": "Sparks", "symbol": "✦" },
     "secondary": { "id": "cores", "name": "Ember Cores", "symbol": "◆" }

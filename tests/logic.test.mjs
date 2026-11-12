@@ -7,14 +7,14 @@ import { createNewSave, migrate, SaveStore, emptyFire } from '../js/logic/state.
 import { settle, stoke, collectAsh, remainingAt, canStokeNow, durationAt, tintAt } from '../js/logic/fire.js';
 import { generateRewards } from '../js/logic/rewards.js';
 import {
-  buyMaterial, buyUpgrade, sellAllTreasures, enduranceBonus, accrueGathering, pickUp, nextGatherIn, canForage, forage, isUnlocked, campsiteProps,
+  buyMaterial, buyUpgrade, sellAllTreasures, enduranceBonus, accrueGathering, pickUp, nextGatherIn, canForage, forage, isUnlocked, visibleOverlays, meetsRequirement,
 } from '../js/logic/economy.js';
 import { getCapacity, getThreshold, effectiveMaterial } from '../js/logic/stats.js';
 
 const load = (n) => JSON.parse(readFileSync(new URL(`../data/${n}.json`, import.meta.url)));
 const data = buildData({
   config: load('config'), materials: load('materials'), items: load('items'),
-  upgrades: load('upgrades'), milestones: load('milestones'),
+  upgrades: load('upgrades'), milestones: load('milestones'), overlays: load('overlays'),
 });
 
 function seeded(seed = 1) {
@@ -362,7 +362,7 @@ test('Improved Foraging turns up pine logs (and rarely birch) and puts the hatch
     return n;
   };
   const before = createNewSave(data, T0);
-  assert.deepEqual(campsiteProps(before, data), [], 'no hatchet before the upgrade');
+  assert.deepEqual(visibleOverlays(before, data).map((o) => o.id), [], 'no hatchet before the upgrade');
   const plain = count(before);
   assert.equal(plain.pine_log + plain.birch_log, 0, 'no logs without the upgrade');
 
@@ -373,10 +373,42 @@ test('Improved Foraging turns up pine logs (and rarely birch) and puts the hatch
   assert.equal(buyUpgrade(s, data, 'improved_foraging').ok, true);
   assert.equal(s.sparks, 600); assert.equal(s.cores, 0);
   assert.equal(buyUpgrade(s, data, 'improved_foraging').ok, false, 'bought once');
-  assert.deepEqual(campsiteProps(s, data), ['hatchet']);
+  assert.deepEqual(visibleOverlays(s, data).map((o) => o.id), ['hatchet']);
   const n = count(s);
   assert.ok(n.pine_log / n.total > 0.08 && n.pine_log / n.total < 0.16, `pine about 12% (${n.pine_log}/${n.total})`);
   assert.ok(n.birch_log > 0 && n.birch_log < n.pine_log / 2, `birch is rarer (${n.birch_log})`);
+});
+
+test('the data loader rejects broken overlays and art', () => {
+  const raw = () => ({
+    config: load('config'), materials: load('materials'), items: load('items'),
+    upgrades: load('upgrades'), milestones: load('milestones'), overlays: load('overlays'),
+  });
+  assert.doesNotThrow(() => buildData(raw()));
+  const bad = (mutate, re) => { const r = raw(); mutate(r); assert.throws(() => buildData(r), re); };
+  bad((r) => { r.overlays[0].layer = 'underground'; }, /unknown layer/);
+  bad((r) => { delete r.overlays[0].sprite; }, /needs a sprite or art/);
+  bad((r) => { r.overlays[0].requires = { upgrade: 'nope' }; }, /unknown upgrade/);
+  bad((r) => { r.overlays.push({ id: 'x', layer: 'sky', art: { w: 2, h: 1, rows: ['ab'], colors: { a: '#000' } } }); }, /no colour/);
+  bad((r) => { r.upgrades[0].group = 'mystery'; }, /unknown group/);
+  const good = raw();
+  good.overlays.push({ id: 'moon', layer: 'sky', x: 10, y: -90, art: { w: 2, h: 2, rows: ['ab', 'ba'], colors: { a: '#fff', b: '#ccc' } } });
+  assert.equal(buildData(good).overlays.length, 2, 'inline art overlays load');
+});
+
+test('overlays can require milestones, discoveries or fires completed', () => {
+  const s = createNewSave(data, T0);
+  const req = (r) => meetsRequirement(s, data, r);
+  assert.equal(req(null), true);
+  assert.equal(req({ milestone: 'e01' }), false);
+  s.milestones.e01 = T0;
+  assert.equal(req({ milestone: 'e01' }), true);
+  assert.equal(req({ discovered: 'amber' }), false);
+  s.discoveries.amber = { count: 1 };
+  assert.equal(req({ discovered: 'amber' }), true);
+  assert.equal(req({ firesCompleted: 2 }), false);
+  s.records.firesCompleted = 2;
+  assert.equal(req({ firesCompleted: 2 }), true);
 });
 
 test('old basket saves become spawns', () => {

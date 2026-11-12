@@ -199,8 +199,21 @@ function rareFind(finds, rng) {
 }
 
 /** Everything that can turn up on the forage patch instead of a twig or leaf. */
+/** How many completed fires burned for at least `seconds`. */
+export function firesLasting(state, seconds) {
+  return (state.records.fireDurations || []).filter((d) => d >= seconds).length;
+}
+
+/** A forage find's chance right now, e.g. the Wooden Effigy grows likelier with long fires. */
+export function findChance(state, find) {
+  const sc = find.scaling;
+  if (!sc) return find.chance;
+  const progress = Math.min(1, firesLasting(state, sc.fireSeconds) / sc.fires);
+  return find.chance * (1 + (sc.maxMultiplier - 1) * progress);
+}
+
 export function forageFinds(state, data) {
-  const out = [...(data.config.gathering.finds || [])];
+  const out = (data.config.gathering.finds || []).map((f) => ({ ...f, chance: findChance(state, f) }));
   for (const u of data.upgrades) {
     if (u.effect.type === 'forageFinds' && upgradeLevel(state, u.id) > 0) out.push(...u.effect.finds);
   }

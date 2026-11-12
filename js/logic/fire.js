@@ -105,6 +105,8 @@ export function extinguish(state, data, at, rng = Math.random, message = null) {
   fire.status = 'ash';
   fire.putOut = null;
   state.records.firesCompleted += 1;
+  state.records.fireDurations = state.records.fireDurations || [];
+  state.records.fireDurations.push(Math.round(fire.totalDuration));
   return { type: 'extinguished', fireId: fire.id, message };
 }
 

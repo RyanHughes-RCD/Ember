@@ -46,6 +46,7 @@ export function createNewSave(data, now) {
       longestFire: 0, totalFireTime: 0, firesCompleted: 0,
       materialsBurned: 0, stokes: 0, sparksEarned: 0,
       burned: {}, // { materialId: count } over all fires
+      fireDurations: [], // seconds each completed fire burned, oldest first
     },
     milestones: {}, // { milestoneId: achievedAt }
     unlocks: {}, // shop unlocks granted by milestones

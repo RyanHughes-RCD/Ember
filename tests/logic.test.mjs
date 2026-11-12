@@ -7,7 +7,7 @@ import { createNewSave, migrate, SaveStore, emptyFire } from '../js/logic/state.
 import { settle, stoke, collectAsh, remainingAt, canStokeNow, durationAt, tintAt, fireGrowth } from '../js/logic/fire.js';
 import { generateRewards } from '../js/logic/rewards.js';
 import {
-  buyMaterial, buyUpgrade, sellAllTreasures, sellValue, enduranceBonus, accrueGathering, pickUp, nextGatherIn, canForage, forage, isUnlocked, visibleOverlays, meetsRequirement,
+  buyMaterial, buyUpgrade, sellAllTreasures, sellValue, enduranceBonus, accrueGathering, pickUp, nextGatherIn, forageFinds, canForage, forage, isUnlocked, visibleOverlays, meetsRequirement,
 } from '../js/logic/economy.js';
 import { getCapacity, getThreshold, effectiveMaterial } from '../js/logic/stats.js';
 
@@ -483,6 +483,25 @@ test('Skull Fragments only burn alongside other fuel, and are rare from Tributes
     if (generateRewards(s, data, f, seeded(100 + i)).some((x) => x.id === 'skull_fragment')) found++;
   }
   assert.ok(found > 3 && found < 90, `rare from a single Tribute (${found}/300)`);
+});
+
+test('the Wooden Effigy gets up to 3x likelier as 6-hour fires are completed', () => {
+  const s = createNewSave(data, T0);
+  const effigy = () => forageFinds(s, data).find((f) => f.id === 'wooden_effigy').chance;
+  assert.ok(Math.abs(effigy() - 0.04) < 1e-9, 'starts at 4%');
+  s.records.fireDurations = [5 * HOUR / 1000, 2 * HOUR / 1000]; // short fires don't count
+  assert.ok(Math.abs(effigy() - 0.04) < 1e-9);
+  s.records.fireDurations.push(...Array(3).fill(6 * HOUR / 1000));
+  assert.ok(Math.abs(effigy() - 0.04 * (1 + 2 * 3 / 9)) < 1e-9, 'a third of the way after 3');
+  s.records.fireDurations.push(...Array(6).fill(30 * HOUR / 1000));
+  assert.ok(Math.abs(effigy() - 0.12) < 1e-9, '3x after 9');
+  s.records.fireDurations.push(...Array(5).fill(30 * HOUR / 1000));
+  assert.ok(Math.abs(effigy() - 0.12) < 1e-9, 'and no further');
+  // completed fires record how long they burned
+  const f = createNewSave(data, T0);
+  stoke(f, data, { pine_log: 1 }, T0 + 30_000);
+  settle(f, data, T0 + 10 * HOUR, seeded(1));
+  assert.deepEqual(f.records.fireDurations, [30 + 2700 + 5400]);
 });
 
 test('old basket saves become spawns', () => {

@@ -749,8 +749,10 @@ class PixelEditor {
       <div class="pe-tools"><div class="seg" role="group" aria-label="Tool">${tools.map(([t, n]) => `<button data-pe="tool" data-v="${t}" aria-pressed="${this.tool === t}">${n}</button>`).join('')}</div>
         <button class="btn small" data-pe="undo">Undo</button><button class="btn small" data-pe="flip">Mirror</button><button class="btn small" data-pe="clear">Clear</button></div>
       <div class="pe-canvaswrap"><canvas class="pe-canvas px"></canvas></div>
-      <div class="pe-pal" aria-label="Colours">${Object.entries(this.colors).map(([k, c]) => `<button class="chip" data-pe="key" data-v="${k}" aria-pressed="${this.key === k}" style="background:${c}" title="Colour ${k} — click to use, double-click or Change colour to edit it"><input type="color" value="${c}" data-pe-color="${k}" tabindex="-1" aria-label="Change colour ${k}"><span class="k">${k}</span></button>`).join('')}
+      <div class="pe-pal" aria-label="Colours">${Object.entries(this.colors).map(([k, c]) => `<button class="chip" data-pe="key" data-v="${k}" aria-pressed="${this.key === k}" style="background:${swatchBg(c)}" title="Colour ${k} — click to use, double-click or Change colour to edit it"><input type="color" value="${splitColor(c).rgb}" data-pe-color="${k}" tabindex="-1" aria-label="Change colour ${k}"><span class="k">${k}</span></button>`).join('')}
         <button class="btn small" data-pe="edit-color">Change colour</button><button class="btn small" data-pe="add-color">+ Colour</button></div>
+      <div class="pe-tools"><label class="f" style="flex:1;min-width:200px;max-width:340px">Opacity of colour ${this.key} <span class="u mono" data-pe-alpha-label>${Math.round((splitColor(this.colors[this.key]).a / 255) * 100)}%</span>
+        <input type="range" min="0" max="100" step="1" value="${Math.round((splitColor(this.colors[this.key]).a / 255) * 100)}" data-pe-alpha aria-label="Opacity of the selected colour"></label></div>
       <div class="pe-tools"><label class="f" style="width:90px">Width<input type="number" min="1" max="${this.max}" value="${this.w}" data-pe-size="w"></label>
         <label class="f" style="width:90px">Height<input type="number" min="1" max="${this.max}" value="${this.h}" data-pe-size="h"></label>
         <label class="btn small" style="align-self:end">Import PNG…<input type="file" accept="image/png,image/gif,image/webp,image/jpeg" data-pe="import" hidden></label>
@@ -768,8 +770,9 @@ class PixelEditor {
     const g = c.getContext('2d');
     for (let y = 0; y < this.h; y++) for (let x = 0; x < this.w; x++) {
       const k = this.grid[y][x];
-      g.fillStyle = k === '.' ? ((x + y) % 2 ? '#241c17' : '#1a1410') : this.colors[k] || '#f0f';
+      g.fillStyle = (x + y) % 2 ? '#241c17' : '#1a1410';
       g.fillRect(x * z, y * z, z, z);
+      if (k !== '.') { g.fillStyle = this.colors[k] || '#f0f'; g.fillRect(x * z, y * z, z, z); }
     }
     if (z >= 6) {
       g.strokeStyle = 'rgba(255,255,255,0.06)'; g.lineWidth = 1;
@@ -819,11 +822,21 @@ class PixelEditor {
     this.host.addEventListener('dblclick', (e) => { const b = e.target.closest('.chip'); if (b) openPicker($('input', b)); });
     this.host.addEventListener('input', (e) => {
       const k = e.target.dataset.peColor;
-      if (k) { this.colors[k] = e.target.value; e.target.parentElement.style.background = e.target.value; this.draw(); }
+      if (k) {
+        this.colors[k] = withAlpha(e.target.value, splitColor(this.colors[k]).a);
+        e.target.parentElement.style.background = swatchBg(this.colors[k]); this.draw();
+      }
+      if (e.target.matches('[data-pe-alpha]')) {
+        const pct = Number(e.target.value);
+        this.colors[this.key] = withAlpha(splitColor(this.colors[this.key]).rgb, (pct / 100) * 255);
+        const chip = $(`.chip[data-v="${this.key}"]`, this.host); if (chip) chip.style.background = swatchBg(this.colors[this.key]);
+        const lbl = $('[data-pe-alpha-label]', this.host); if (lbl) lbl.textContent = `${pct}%`;
+        this.draw();
+      }
     });
     this.host.addEventListener('change', (e) => {
       const t = e.target;
-      if (t.dataset.peColor) this.commit();
+      if (t.dataset.peColor || t.matches('[data-pe-alpha]')) this.commit();
       if (t.dataset.peSize) {
         const v = Math.max(1, Math.min(this.max, parseInt(t.value, 10) || 1));
         this.snapshot();
@@ -882,6 +895,19 @@ class PixelEditor {
     };
   }
 }
+/** "#rrggbb" or "#rrggbbaa" → rgb part and alpha 0–255. */
+function splitColor(c) {
+  const hex = /^#[0-9a-f]{6}([0-9a-f]{2})?$/i.test(c || '') ? c : '#000000';
+  return { rgb: hex.slice(0, 7), a: hex.length === 9 ? parseInt(hex.slice(7), 16) : 255 };
+}
+function withAlpha(rgb, a) {
+  const v = Math.max(0, Math.min(255, Math.round(a)));
+  return v >= 255 ? rgb : rgb + v.toString(16).padStart(2, '0');
+}
+/** A swatch background that shows transparency over a checkerboard. */
+function swatchBg(c) {
+  return `linear-gradient(${c}, ${c}), repeating-conic-gradient(#6a5d52 0 25%, #2c241e 0 50%) 0 0 / 10px 10px`;
+}
 function openPicker(input) {
   if (!input) return;
   try { if (input.showPicker) input.showPicker(); else input.click(); } catch { input.click(); }
@@ -939,7 +965,7 @@ function imageToArt(img, b, removeBg, maxColors) {
       }
       samples.sort((p, q) => p[0] + p[1] + p[2] - (q[0] + q[1] + q[2]));
       const m = samples[2];
-      row.push(m[3] < 128 ? null : [m[0], m[1], m[2]]);
+      row.push(m[3] < 16 ? null : [m[0], m[1], m[2], m[3]]);
     }
     cells.push(row);
   }
@@ -972,15 +998,15 @@ function imageToArt(img, b, removeBg, maxColors) {
   while (list.length > maxColors) {
     let bi = 0; let bj = 1; let bd = Infinity;
     for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
-      const a = list[i].c; const z = list[j].c; const d = (a[0] - z[0]) ** 2 * 0.3 + (a[1] - z[1]) ** 2 * 0.59 + (a[2] - z[2]) ** 2 * 0.11;
+      const a = list[i].c; const z = list[j].c; const d = (a[0] - z[0]) ** 2 * 0.3 + (a[1] - z[1]) ** 2 * 0.59 + (a[2] - z[2]) ** 2 * 0.11 + (a[3] - z[3]) ** 2 * 0.5;
       if (d < bd) { bd = d; bi = i; bj = j; }
     }
     const A = list[bi]; const Z = list[bj];
     A.c = A.c.map((v, z) => (v * A.n + Z.c[z] * Z.n) / (A.n + Z.n)); A.n += Z.n; list.splice(bj, 1);
   }
-  const hex = (c) => `#${c.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')}`;
+  const hex = (c) => withAlpha(`#${c.slice(0, 3).map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')}`, c[3] >= 250 ? 255 : c[3]);
   const colors = {}; list.forEach((e, i) => { colors[KEYS[i]] = hex(e.c); });
-  const nearestKey = (c) => { let bk = 'a'; let bd = Infinity; list.forEach((e, i) => { const d = (e.c[0] - c[0]) ** 2 + (e.c[1] - c[1]) ** 2 + (e.c[2] - c[2]) ** 2; if (d < bd) { bd = d; bk = KEYS[i]; } }); return bk; };
+  const nearestKey = (c) => { let bk = 'a'; let bd = Infinity; list.forEach((e, i) => { const d = (e.c[0] - c[0]) ** 2 + (e.c[1] - c[1]) ** 2 + (e.c[2] - c[2]) ** 2 + (e.c[3] - c[3]) ** 2; if (d < bd) { bd = d; bk = KEYS[i]; } }); return bk; };
   const rows = [];
   for (let j = y0; j <= y1; j++) { let r = ''; for (let i = x0; i <= x1; i++) { const c = cells[j][i]; r += c ? nearestKey(c) : '.'; } rows.push(r); }
   return { w: x1 - x0 + 1, h: y1 - y0 + 1, rows, colors };
@@ -994,6 +1020,7 @@ function checkArt(art, where, out) {
     if (row.length !== art.w) out.push(['error', `${where}: row ${y + 1} of the art is the wrong width.`]);
     for (const ch of row) if (ch !== '.' && !(ch in art.colors)) { out.push(['error', `${where}: the art uses colour "${ch}" with no colour set.`]); break; }
   });
+  for (const [k, c] of Object.entries(art.colors || {})) if (!/^#[0-9a-f]{6}([0-9a-f]{2})?$/i.test(c)) out.push(['error', `${where}: colour "${k}" (${c}) isn't a #rrggbb or #rrggbbaa colour.`]);
 }
 function validate() {
   const out = [];

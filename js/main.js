@@ -113,7 +113,7 @@ function showMenu() {
     <div class="menu-list">
       ${item('materials', 'log', 'Materials')}
       ${item('journal', 'book', 'Journal')}
-      ${item('upgrades', 'bellows', 'Upgrades', upgradeAffordable())}
+      ${item('upgrades', 'bellows', 'Upgrades')}
       ${item('settings', 'sieve', 'Settings')}
     </div>`);
   $$('#sheet-body .menu-item').forEach((b) => b.addEventListener('click', () => {

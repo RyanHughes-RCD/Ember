@@ -27,6 +27,7 @@ const rand = (a, b) => a + Math.random() * (b - a);
 const EYES_EVERY_SECONDS = 600;
 // The hatchet lying on the ground beside the fire ('hatchet' = lying flat, 'hatchet_full' = full-size upright art).
 const HATCHET_SPRITE = 'hatchet';
+const HATCHET_BRIGHTNESS = 1.18; // a touch lighter than the source art so it reads in the shadows
 
 // ---------------------------------------------------------------- fire-ring stones
 
@@ -147,6 +148,20 @@ function buildStones() {
   }
   // draw far stones first so nearer ones overlap them
   return out.sort((p, q) => p.dy - q.dy);
+}
+
+/** A copy of a sprite with every colour scaled by `k` (1 = unchanged). */
+function brighten(img, k) {
+  const c = document.createElement('canvas');
+  c.width = img.width; c.height = img.height;
+  const g = c.getContext('2d');
+  g.drawImage(img, 0, 0);
+  const d = g.getImageData(0, 0, img.width, img.height);
+  for (let i = 0; i < d.data.length; i += 4) {
+    for (let j = 0; j < 3; j++) d.data[i + j] = Math.min(255, Math.round(d.data[i + j] * k + 4));
+  }
+  g.putImageData(d, 0, 0);
+  return c;
 }
 
 /** A flat-coloured copy of a sprite's shape (for shadows). */
@@ -538,7 +553,8 @@ export class Scene {
 
   /** A hatchet lying in the shadows at the bottom-right corner of the clearing (partly out of view). */
   drawHatchet(c) {
-    const img = this.s[HATCHET_SPRITE];
+    if (!this.hatchetImg) this.hatchetImg = brighten(this.s[HATCHET_SPRITE], HATCHET_BRIGHTNESS);
+    const img = this.hatchetImg;
     if (!this.hatchetRim) this.hatchetRim = topEdges(img);
     if (!this.hatchetShadow) this.hatchetShadow = silhouette(img, '#050403');
     const x = Math.round(this.w - img.width - 6);

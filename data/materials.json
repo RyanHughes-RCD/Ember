@@ -181,7 +181,9 @@
     "burnSeconds": 1800, "heat": 3, "quality": 2, "essence": 2, "ashYield": 2,
     "price": null, "unlock": null,
     "flameTint": "red",
+    "flameTintLasts": "fire",
     "extinguishAfterSeconds": 1500,
+    "extinguishOnce": true,
     "extinguishMessage": "Something stomped out the fire early",
     "loot": [
       { "item": "fine_ash", "chance": 0.6, "min": 1, "max": 2 },

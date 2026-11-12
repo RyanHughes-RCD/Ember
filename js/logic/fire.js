@@ -36,7 +36,8 @@ export function tooHotMessage(fire, data) {
 
 /** The flame colour right now ('red', …), or null for an ordinary fire. */
 export function tintAt(fire, now) {
-  return fire.status === 'burning' && fire.tint && fire.tint.until > now ? fire.tint.color : null;
+  // `until: null` means for the rest of this fire
+  return fire.status === 'burning' && fire.tint && (fire.tint.until == null || fire.tint.until > now) ? fire.tint.color : null;
 }
 
 export function durationAt(fire, now) {
@@ -186,19 +187,29 @@ export function stoke(state, data, selection, now, rng = Math.random) {
     state.records.materialsBurned += n;
     state.records.burned = state.records.burned || {};
     state.records.burned[id] = (state.records.burned[id] || 0) + n;
-    const tint = data.materialById[id].flameTint;
+    const def = data.materialById[id];
+    const tint = def.flameTint;
     if (tint) {
-      // the flames take this colour while the material burns; more of it keeps them that colour longer
-      const from = fire.tint && fire.tint.color === tint && fire.tint.until > now ? fire.tint.until : now;
-      fire.tint = { color: tint, until: from + m.burnSeconds * n * 1000 };
+      if (def.flameTintLasts === 'fire') {
+        fire.tint = { color: tint, until: null }; // e.g. a fire with an effigy in it stays red until it goes out
+      } else if (!(fire.tint && fire.tint.color === tint && fire.tint.until == null)) {
+        // the flames take this colour while the material burns; more of it keeps them that colour longer
+        const from = fire.tint && fire.tint.color === tint && fire.tint.until > now ? fire.tint.until : now;
+        fire.tint = { color: tint, until: from + m.burnSeconds * n * 1000 };
+      }
     }
-    const after = data.materialById[id].extinguishAfterSeconds;
-    if (after) {
+    const after = def.extinguishAfterSeconds;
+    const onceKey = `putOut:${id}`;
+    state.records.once = state.records.once || {};
+    // a one-time event (the effigy stomp) only happens in the first fire one is ever burned in
+    const firstEver = (state.records.burned[id] || 0) - n === 0 && !state.records.once[onceKey];
+    if (after && (!def.extinguishOnce || firstEver || (fire.putOut && fire.putOut.by === id))) {
       // the first one burned decides when; more of them don't move it
       const at = now + after * 1000;
       if (!fire.putOut || at < fire.putOut.at) {
-        fire.putOut = { at, message: data.materialById[id].extinguishMessage || 'The fire went out early' };
+        fire.putOut = { at, by: id, message: def.extinguishMessage || 'The fire went out early' };
       }
+      if (def.extinguishOnce) state.records.once[onceKey] = now;
     }
   }
   fire.lastUpdated = now;

@@ -292,7 +292,7 @@ test('foraging occasionally turns up a Wooden Effigy', () => {
   assert.ok(s.seenMaterials.wooden_effigy, 'picking one up adds it to your materials');
 });
 
-test('a Wooden Effigy makes the fire burn red while it burns', () => {
+test('a Wooden Effigy makes the fire burn red for the rest of that fire', () => {
   const s = createNewSave(data, T0);
   s.upgrades.capacity = 6;
   s.inventory.wooden_effigy = 1;
@@ -301,6 +301,9 @@ test('a Wooden Effigy makes the fire burn red while it burns', () => {
   assert.equal(stoke(s, data, { wooden_effigy: 1, pine_log: 1 }, at).ok, true);
   assert.equal(tintAt(s.fire, at), 'red');
   assert.equal(tintAt(s.fire, at + 24 * MIN), 'red');
+  s.records.once['putOut:wooden_effigy'] = T0; // (pretend the one-time stomp already happened, so this fire keeps going)
+  s.fire.putOut = null;
+  assert.equal(tintAt(s.fire, at + 2 * HOUR), 'red', 'still red long after the effigy itself burned away');
   assert.equal(effectiveMaterial(s, data, 'wooden_effigy').burnSeconds, 1800);
   assert.equal(buyMaterial(s, data, 'wooden_effigy').ok, false, 'not sold in the shop');
 });
@@ -323,8 +326,13 @@ test('something stomps out the fire 25 minutes after an effigy burns', () => {
   assert.equal(Math.round(s.pendingAsh.duration), 30 + 25 * 60, 'the fire stopped exactly then');
   assert.ok(s.pendingAsh.materialsBurned.wooden_effigy === 1 && s.pendingAsh.materialsBurned.pine_log === 3, 'everything burned still counts for rewards');
   collectAsh(s, data, at + HOUR);
-  assert.equal(stoke(s, data, { wooden_effigy: 1 }, at + HOUR).ok, true, 'a new fire can be lit');
-  assert.equal(s.fire.putOut.at, at + HOUR + 25 * MIN, 'a new fire gets its own timer');
+  assert.equal(stoke(s, data, { wooden_effigy: 1 }, at + HOUR).ok, true, 'a new fire can be lit with another effigy');
+  assert.equal(s.fire.putOut, null, 'the stomp only ever happens once');
+  // ...and that later effigy fire stays red for as long as it burns
+  assert.equal(tintAt(s.fire, at + HOUR + 29 * MIN), 'red');
+  const later = settle(s, data, at + 3 * HOUR, seeded(4)).find((e) => e.type === 'extinguished');
+  assert.ok(later && !later.message, 'it burns out on its own, with no message');
+  assert.equal(Math.round(s.pendingAsh.duration), 30 * 60, 'it burned its full 30 minutes');
 });
 
 test('the stomp also happens while the app is closed, and a second effigy does not delay it', () => {

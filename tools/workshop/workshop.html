@@ -493,7 +493,9 @@ function materialForm(o) {
   <div class="card"><h3>Ash rewards</h3><p class="help">Each roll checks every row separately. Ash yield sets how many rolls one of these makes.</p>${lootTable(o)}</div>
   <div class="card"><h3>Special</h3>
     <div class="grid2">${selectField('Flame colour while burning', 'flameTint', [['', 'Normal'], ['red', 'Red']])}
-      ${field('Puts the fire out after', 'extinguishAfterSeconds', 'opt-min', 'min="0"', 'minutes — empty for never')}</div>
+      ${o.flameTint ? selectField('Colour lasts', 'flameTintLasts', [['', 'While it burns'], ['fire', 'The rest of the fire']]) : ''}</div>
+    <div class="grid2">${field('Puts the fire out after', 'extinguishAfterSeconds', 'opt-min', 'min="0"', 'minutes — empty for never')}</div>
+    ${o.extinguishAfterSeconds ? `<label class="check"><input type="checkbox" data-once ${o.extinguishOnce ? 'checked' : ''}> Only the first time one is ever burned</label>` : ''}
     ${field('Message when it does', 'extinguishMessage', 'opt-text')}
     <div class="grid2">${field('Makes the fire bigger by', 'fireGrowth', 'opt-pct', 'min="0" step="1"', '% each — empty for no change')}
       ${field('Too hot to approach after', 'tooHotAt', 'opt-int', 'min="1"', 'in one fire — empty for never')}</div>
@@ -1317,6 +1319,7 @@ document.addEventListener('change', (e) => {
     if (!t.value) delete o.guarantee; else o.guarantee = { count: (o.guarantee && o.guarantee.count) || 5, item: t.value, qty: (o.guarantee && o.guarantee.qty) || 1 };
     afterChange(); return;
   }
+  if (t.matches('[data-once]')) { if (t.checked) o.extinguishOnce = true; else delete o.extinguishOnce; afterChange(); return; }
   if (t.matches('[data-burn-alone]')) {
     if (t.checked) o.burnAlone = false; else { delete o.burnAlone; delete o.burnAloneMessage; }
     afterChange(); return;

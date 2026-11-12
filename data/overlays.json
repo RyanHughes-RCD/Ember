@@ -1,10 +1,72 @@
 [
   {
-    "id": "hatchet", "name": "Hatchet",
-    "sprite": "hatchet",
+    "brightness": 1.18,
+    "flip": false,
+    "id": "hatchet",
     "layer": "ground-front",
-    "x": 18, "y": 9,
-    "brightness": 1.18, "light": 0.15, "shadow": true, "flip": false,
-    "requires": { "upgrade": "improved_foraging" }
+    "light": 0.15,
+    "name": "Hatchet",
+    "requires": {
+      "upgrade": "improved_foraging"
+    },
+    "shadow": true,
+    "sprite": "hatchet",
+    "x": 18,
+    "y": 9
+  },
+  {
+    "art": {
+      "colors": {
+        "a": "#4f4f4f78",
+        "b": "#4d4d4dc9",
+        "c": "#030303d9",
+        "d": "#00000082",
+        "e": "#000000b5"
+      },
+      "h": 28,
+      "rows": [
+        "........cc....",
+        ".......c..c...",
+        ".......c..c...",
+        ".ccc...cccc...",
+        "..cccc.ccc....",
+        "...cccccc.....",
+        ".....ccccc....",
+        "......ccccc...",
+        "......bc.ccc..",
+        ".....ccb..ccc.",
+        ".....cc.......",
+        ".....bc.......",
+        "....ccb.......",
+        "....cc........",
+        "....bc........",
+        "...eeb........",
+        "...ee.........",
+        "...ae.........",
+        "..dda.........",
+        "..dd..........",
+        "..ad..........",
+        ".dda..........",
+        ".dd...........",
+        ".ad...........",
+        "..a...........",
+        "..............",
+        "..............",
+        ".............."
+      ],
+      "w": 14
+    },
+    "brightness": 1,
+    "flip": false,
+    "id": "coiled_sword",
+    "layer": "ground-front",
+    "light": 0.2,
+    "name": "Coiled Sword",
+    "requires": {
+      "upgrade": "coiled_sword"
+    },
+    "shadow": false,
+    "x": 0,
+    "y": -9
   }
 ]

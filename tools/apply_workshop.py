@@ -43,19 +43,26 @@ def main(path):
     }
     backups = {name: (DATA / name).read_text() if (DATA / name).exists() else None for name in [*targets, "config.json"]}
     try:
+        written = []
         for name, value in targets.items():
+            # only rewrite files whose content changed, so untouched files keep their formatting
+            if backups[name] is not None and json.loads(backups[name]) == value:
+                continue
             (DATA / name).write_text(dump(value))
+            written.append(name)
         if "upgradeGroups" in bundle:
             config = json.loads(backups["config.json"])
-            config["upgradeGroups"] = bundle["upgradeGroups"]
-            (DATA / "config.json").write_text(dump(config))
+            if config.get("upgradeGroups") != bundle["upgradeGroups"]:
+                config["upgradeGroups"] = bundle["upgradeGroups"]
+                (DATA / "config.json").write_text(dump(config))
+                written.append("config.json")
         result = subprocess.run(["node", "--input-type=module", "-e", CHECK], cwd=ROOT, capture_output=True, text=True)
         if result.returncode != 0:
             lines = result.stderr.strip().splitlines()
             reason = next((ln.split("Error: ", 1)[1] for ln in lines if "Error: " in ln), lines[-1] if lines else "check failed")
             raise RuntimeError(reason)
         print(result.stdout.strip())
-        print("Applied. Review with `git diff data/`, then commit.")
+        print(f"Updated: {', '.join(written) if written else 'nothing (no changes)'}. Review with `git diff data/`, then commit.")
     except Exception as err:  # put everything back
         for name, text in backups.items():
             if text is None:

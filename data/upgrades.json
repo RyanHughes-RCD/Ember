@@ -1,88 +1,371 @@
 [
   {
-    "id": "capacity", "group": "firekeeping", "name": "Expanded Stoking Capacity",
-    "description": "Add more materials in a single stoke.",
-    "icon": "slots",
-    "effect": { "type": "capacity" },
     "costs": [
-      { "sparks": 60 }, { "sparks": 180 }, { "sparks": 450 }, { "sparks": 1100 },
-      { "sparks": 2400, "cores": 3 }, { "sparks": 5000, "cores": 8 }
-    ]
-  },
-  {
-    "id": "seasoned_wood", "group": "firekeeping", "name": "Seasoned Wood",
-    "description": "Wood materials burn longer.",
-    "icon": "log",
-    "effect": { "type": "burnCategory", "category": "wood", "perLevel": 0.10 },
-    "costs": [ { "sparks": 50 }, { "sparks": 110 }, { "sparks": 240 }, { "sparks": 520 }, { "sparks": 1100 } ]
-  },
-  {
-    "id": "efficient_combustion", "group": "firekeeping", "name": "Efficient Combustion",
-    "description": "All materials burn longer.",
-    "icon": "flame",
-    "effect": { "type": "burnAll", "perLevel": 0.06 },
-    "costs": [ { "sparks": 120 }, { "sparks": 260 }, { "sparks": 560 }, { "sparks": 1200, "cores": 1 }, { "sparks": 2500, "cores": 3 } ]
-  },
-  {
-    "id": "improved_bellows", "group": "firekeeping", "name": "Improved Bellows",
-    "description": "Materials contribute more heat.",
-    "icon": "bellows",
-    "effect": { "type": "heat", "perLevel": 0.12 },
-    "costs": [ { "sparks": 60 }, { "sparks": 130 }, { "sparks": 280 }, { "sparks": 600 }, { "sparks": 1300 } ]
-  },
-  {
-    "id": "fire_mastery", "group": "firekeeping", "name": "Fire Mastery",
-    "description": "Materials contribute more quality, favouring finer rewards.",
-    "icon": "star",
-    "effect": { "type": "quality", "perLevel": 0.10 },
-    "costs": [ { "sparks": 100 }, { "sparks": 220 }, { "sparks": 480 }, { "sparks": 1000 }, { "sparks": 2200 } ]
-  },
-  {
-    "id": "ember_preservation", "group": "firekeeping", "name": "Ember Preservation",
-    "description": "Embers hold their spark: stoke earlier and draw out more essence.",
-    "icon": "core",
-    "effect": { "type": "preservation", "thresholdPerLevel": 600, "essencePerLevel": 0.08 },
-    "costs": [ { "sparks": 400, "cores": 1 }, { "sparks": 1200, "cores": 3 }, { "sparks": 3000, "cores": 6 } ]
-  },
-  {
-    "id": "fine_ash_sieve", "group": "ash", "name": "Fine Ash Sieve",
-    "description": "Every material yields more reward rolls.",
-    "icon": "sieve",
-    "effect": { "type": "rolls", "perLevel": 0.10 },
-    "costs": [ { "sparks": 80 }, { "sparks": 180 }, { "sparks": 400 }, { "sparks": 850 }, { "sparks": 1800, "cores": 2 } ]
-  },
-  {
-    "id": "careful_recovery", "group": "ash", "name": "Careful Recovery",
-    "description": "Better chance of finding uncommon rewards.",
-    "icon": "hand",
-    "effect": { "type": "rarityChance", "rarities": ["uncommon"], "perLevel": 0.15 },
-    "costs": [ { "sparks": 70 }, { "sparks": 150 }, { "sparks": 320 }, { "sparks": 700 }, { "sparks": 1500 } ]
-  },
-  {
-    "id": "lucky_charm", "group": "ash", "name": "Lucky Charm",
-    "description": "Better chance of finding rare, epic and legendary rewards.",
-    "icon": "clover",
-    "effect": { "type": "rarityChance", "rarities": ["rare", "epic", "legendary"], "perLevel": 0.12 },
-    "costs": [ { "sparks": 150 }, { "sparks": 330 }, { "sparks": 720 }, { "sparks": 1500, "cores": 1 }, { "sparks": 3200, "cores": 3 } ]
-  },
-  {
-    "id": "ancient_knowledge", "group": "ash", "name": "Ancient Knowledge",
-    "description": "Better chance of magical discoveries.",
-    "icon": "book",
-    "effect": { "type": "tagChance", "tag": "magic", "perLevel": 0.15 },
-    "costs": [ { "sparks": 200 }, { "sparks": 440 }, { "sparks": 950, "cores": 1 }, { "sparks": 2000, "cores": 2 }, { "sparks": 4200, "cores": 4 } ]
-  },
-  {
-    "id": "improved_foraging", "group": "campsite", "name": "Improved Foraging",
-    "description": "A good hatchet: fallen logs turn up in the forage patch.",
-    "iconSprite": "hatchet_full",
+      {
+        "sparks": 60
+      },
+      {
+        "sparks": 180
+      },
+      {
+        "sparks": 450
+      },
+      {
+        "sparks": 1100
+      },
+      {
+        "cores": 3,
+        "sparks": 2400
+      },
+      {
+        "cores": 8,
+        "sparks": 5000
+      }
+    ],
+    "description": "Add more materials in a single stoke.",
     "effect": {
-      "type": "forageFinds",
-      "finds": [
-        { "id": "pine_log", "chance": 0.12 },
-        { "id": "birch_log", "chance": 0.03 }
-      ]
+      "type": "capacity"
     },
-    "costs": [ { "sparks": 400, "cores": 3 } ]
+    "group": "firekeeping",
+    "icon": "slots",
+    "id": "capacity",
+    "name": "Expanded Stoking Capacity"
+  },
+  {
+    "costs": [
+      {
+        "sparks": 50
+      },
+      {
+        "sparks": 110
+      },
+      {
+        "sparks": 240
+      },
+      {
+        "sparks": 520
+      },
+      {
+        "sparks": 1100
+      }
+    ],
+    "description": "Wood materials burn longer.",
+    "effect": {
+      "category": "wood",
+      "perLevel": 0.1,
+      "type": "burnCategory"
+    },
+    "group": "firekeeping",
+    "icon": "log",
+    "id": "seasoned_wood",
+    "name": "Seasoned Wood"
+  },
+  {
+    "costs": [
+      {
+        "sparks": 120
+      },
+      {
+        "sparks": 260
+      },
+      {
+        "sparks": 560
+      },
+      {
+        "cores": 1,
+        "sparks": 1200
+      },
+      {
+        "cores": 3,
+        "sparks": 2500
+      }
+    ],
+    "description": "All materials burn longer.",
+    "effect": {
+      "perLevel": 0.06,
+      "type": "burnAll"
+    },
+    "group": "firekeeping",
+    "icon": "flame",
+    "id": "efficient_combustion",
+    "name": "Efficient Combustion"
+  },
+  {
+    "costs": [
+      {
+        "sparks": 60
+      },
+      {
+        "sparks": 130
+      },
+      {
+        "sparks": 280
+      },
+      {
+        "sparks": 600
+      },
+      {
+        "sparks": 1300
+      }
+    ],
+    "description": "Materials contribute more heat.",
+    "effect": {
+      "perLevel": 0.12,
+      "type": "heat"
+    },
+    "group": "firekeeping",
+    "icon": "bellows",
+    "id": "improved_bellows",
+    "name": "Improved Bellows"
+  },
+  {
+    "costs": [
+      {
+        "sparks": 100
+      },
+      {
+        "sparks": 220
+      },
+      {
+        "sparks": 480
+      },
+      {
+        "sparks": 1000
+      },
+      {
+        "sparks": 2200
+      }
+    ],
+    "description": "Materials contribute more quality, favouring finer rewards.",
+    "effect": {
+      "perLevel": 0.1,
+      "type": "quality"
+    },
+    "group": "firekeeping",
+    "icon": "star",
+    "id": "fire_mastery",
+    "name": "Fire Mastery"
+  },
+  {
+    "costs": [
+      {
+        "cores": 1,
+        "sparks": 400
+      },
+      {
+        "cores": 3,
+        "sparks": 1200
+      },
+      {
+        "cores": 6,
+        "sparks": 3000
+      }
+    ],
+    "description": "Embers hold their spark: stoke earlier and draw out more essence.",
+    "effect": {
+      "essencePerLevel": 0.08,
+      "thresholdPerLevel": 600,
+      "type": "preservation"
+    },
+    "group": "firekeeping",
+    "icon": "core",
+    "id": "ember_preservation",
+    "name": "Ember Preservation"
+  },
+  {
+    "costs": [
+      {
+        "sparks": 80
+      },
+      {
+        "sparks": 180
+      },
+      {
+        "sparks": 400
+      },
+      {
+        "sparks": 850
+      },
+      {
+        "cores": 2,
+        "sparks": 1800
+      }
+    ],
+    "description": "Every material yields more reward rolls.",
+    "effect": {
+      "perLevel": 0.1,
+      "type": "rolls"
+    },
+    "group": "ash",
+    "icon": "sieve",
+    "id": "fine_ash_sieve",
+    "name": "Fine Ash Sieve"
+  },
+  {
+    "costs": [
+      {
+        "sparks": 70
+      },
+      {
+        "sparks": 150
+      },
+      {
+        "sparks": 320
+      },
+      {
+        "sparks": 700
+      },
+      {
+        "sparks": 1500
+      }
+    ],
+    "description": "Better chance of finding uncommon rewards.",
+    "effect": {
+      "perLevel": 0.15,
+      "rarities": [
+        "uncommon"
+      ],
+      "type": "rarityChance"
+    },
+    "group": "ash",
+    "icon": "hand",
+    "id": "careful_recovery",
+    "name": "Careful Recovery"
+  },
+  {
+    "costs": [
+      {
+        "sparks": 150
+      },
+      {
+        "sparks": 330
+      },
+      {
+        "sparks": 720
+      },
+      {
+        "cores": 1,
+        "sparks": 1500
+      },
+      {
+        "cores": 3,
+        "sparks": 3200
+      }
+    ],
+    "description": "Better chance of finding rare, epic and legendary rewards.",
+    "effect": {
+      "perLevel": 0.12,
+      "rarities": [
+        "rare",
+        "epic",
+        "legendary"
+      ],
+      "type": "rarityChance"
+    },
+    "group": "ash",
+    "icon": "clover",
+    "id": "lucky_charm",
+    "name": "Lucky Charm"
+  },
+  {
+    "costs": [
+      {
+        "sparks": 200
+      },
+      {
+        "sparks": 440
+      },
+      {
+        "cores": 1,
+        "sparks": 950
+      },
+      {
+        "cores": 2,
+        "sparks": 2000
+      },
+      {
+        "cores": 4,
+        "sparks": 4200
+      }
+    ],
+    "description": "Better chance of magical discoveries.",
+    "effect": {
+      "perLevel": 0.15,
+      "tag": "magic",
+      "type": "tagChance"
+    },
+    "group": "ash",
+    "icon": "book",
+    "id": "ancient_knowledge",
+    "name": "Ancient Knowledge"
+  },
+  {
+    "costs": [
+      {
+        "cores": 3,
+        "sparks": 400
+      }
+    ],
+    "description": "A good hatchet: fallen logs turn up in the forage patch.",
+    "effect": {
+      "finds": [
+        {
+          "chance": 0.12,
+          "id": "pine_log"
+        },
+        {
+          "chance": 0.03,
+          "id": "birch_log"
+        }
+      ],
+      "type": "forageFinds"
+    },
+    "group": "campsite",
+    "iconSprite": "hatchet_full",
+    "id": "improved_foraging",
+    "name": "Improved Foraging"
+  },
+  {
+    "costs": [
+      {
+        "cores": 10,
+        "sparks": 1000
+      }
+    ],
+    "description": "",
+    "effect": {
+      "perLevel": 0.2,
+      "type": "heat"
+    },
+    "group": "campsite",
+    "icon": "flame",
+    "iconArt": {
+      "colors": {
+        "a": "#000000",
+        "b": "#242424"
+      },
+      "h": 16,
+      "rows": [
+        "................",
+        "................",
+        ".......aa.......",
+        "......a..a......",
+        "......a..a......",
+        ".......aa.......",
+        ".......aa.......",
+        ".......aa.......",
+        "..aaaaaaaaaaaa..",
+        "...aaaaaaaaaa...",
+        ".......ab.......",
+        ".......ba.......",
+        ".......aa.......",
+        ".......aa.......",
+        ".......ab.......",
+        ".......ba......."
+      ],
+      "w": 16
+    },
+    "id": "coiled_sword",
+    "name": "Coiled Sword"
   }
 ]

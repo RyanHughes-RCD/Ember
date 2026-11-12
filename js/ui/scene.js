@@ -392,7 +392,7 @@ export class Scene {
     c.drawImage(this.s.forest_night, Math.round((W - FOREST_W) / 2), forestY);
     // ground in front of the forest
     const gy = this.fb - 26;
-    const ground = c.createLinearGradient(0, gy, 0, gy + 44); // a long, gradual fade from firelit brown to black
+    const ground = c.createLinearGradient(0, gy, 0, gy + 59); // a long, gradual fade from firelit brown to black
     ground.addColorStop(0, 'rgba(18,14,10,0)'); ground.addColorStop(0.5, '#15100c'); ground.addColorStop(1, '#0a0705');
     c.fillStyle = ground;
     c.fillRect(0, gy, W, H - gy);

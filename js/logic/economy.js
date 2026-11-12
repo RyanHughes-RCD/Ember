@@ -173,9 +173,23 @@ function addSpawn(g, id, at, rng) {
 }
 
 /** Occasionally a fallen item is something rarer (e.g. a Wooden Effigy). */
-function rareFind(cfg, rng) {
-  for (const f of cfg.finds || []) if (rng() < f.chance) return f.id;
+function rareFind(finds, rng) {
+  for (const f of finds) if (rng() < f.chance) return f.id;
   return null;
+}
+
+/** Everything that can turn up on the forage patch instead of a twig or leaf. */
+export function forageFinds(state, data) {
+  const out = [...(data.config.gathering.finds || [])];
+  for (const u of data.upgrades) {
+    if (u.effect.type === 'forageFinds' && upgradeLevel(state, u.id) > 0) out.push(...u.effect.finds);
+  }
+  return out;
+}
+
+/** Campsite props unlocked by upgrades (e.g. the hatchet by the fire). */
+export function campsiteProps(state, data) {
+  return data.upgrades.filter((u) => u.effect.campsiteProp && upgradeLevel(state, u.id) > 0).map((u) => u.effect.campsiteProp);
 }
 
 /** Advance foraging to `now`, spawning items in the order their timers complete. */
@@ -197,6 +211,7 @@ export function accrueGathering(state, data, now, rng = Math.random) {
     return;
   }
   let remaining = (now - g.lastUpdated) / 1000;
+  const finds = forageFinds(state, data);
   let t = g.lastUpdated;
   while (remaining > 1e-9 && g.spawns.length < cfg.maxSpawns) {
     let best = null; let wait = Infinity;
@@ -210,7 +225,7 @@ export function accrueGathering(state, data, now, rng = Math.random) {
     t += step * 1000;
     if (step === wait) {
       g.accum[best.id] = Math.max(0, g.accum[best.id] - 1);
-      addSpawn(g, rareFind(cfg, rng) || best.id, Math.round(t), rng);
+      addSpawn(g, rareFind(finds, rng) || best.id, Math.round(t), rng);
     }
   }
   g.lastUpdated = now;

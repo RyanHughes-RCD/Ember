@@ -29,6 +29,8 @@ so it runs directly on GitHub Pages.
    **Wooden Effigy**: nothing special as fuel, and while it burns the flames turn red… but 25 minutes
    later something comes and stomps the fire out, however much fuel is left.
    An emergency fallback means you can never get stuck without fuel.
+7. **Campsite Upgrades** improve the clearing itself. **Improved Foraging** (400 Sparks + 3 Ember Cores)
+   lets fallen Pine Logs, and rarely Birch Logs, turn up on the forage patch, and leaves a hatchet by the fire.
 
 ## Running locally
 

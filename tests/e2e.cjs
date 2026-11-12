@@ -191,7 +191,7 @@ function check(cond, msg) {
   check(await page.isVisible('#forage-canvas'), 'FORAGE opens the grassy patch');
   const spawns = (await save(page)).gathering.spawns;
   check(spawns.length === 6, `patch filled to the 6-item limit while away (${spawns.length})`);
-  check(spawns.every((o) => ['dry_leaves', 'twigs', 'wooden_effigy'].includes(o.id)), 'only twigs, leaves and the rare effigy spawn');
+  check(spawns.every((o) => ['dry_leaves', 'twigs', 'wooden_effigy', 'pine_log', 'birch_log'].includes(o.id)), 'only twigs, leaves and the rare effigy spawn');
   const first = spawns[0];
   const invBeforePick = (await save(page)).inventory[first.id] || 0;
   await page.click(`.spawn-hit[data-key="${first.key}"]`);

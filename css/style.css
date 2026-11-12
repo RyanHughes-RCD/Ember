@@ -320,6 +320,7 @@ img.px-icon, canvas, .pixel { image-rendering: pixelated; image-rendering: crisp
 .up-group > p { color: var(--muted); font-size: 13px; margin: 4px 2px 8px; }
 .up-card { display: grid; grid-template-columns: 40px 1fr; gap: 10px; }
 .up-card > img { width: 40px; height: 40px; }
+.up-card > img.sprite-icon { object-fit: contain; }
 .up-top { display: flex; align-items: baseline; gap: 8px; }
 .up-top .name { font-weight: 700; }
 .pips { margin-left: auto; display: flex; gap: 2px; }

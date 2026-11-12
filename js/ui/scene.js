@@ -274,7 +274,8 @@ export class Scene {
   stop() { this.running = false; }
 
   /** Called by the UI every tick. */
-  setFire({ status, intensity, heat, essence, quality, tint }) {
+  setFire({ status, intensity, heat, essence, quality, tint, props }) {
+    if (props) this.props = props;
     if (tint !== undefined) this.redTarget = tint === 'red' ? 1 : 0;
     if (status === 'burning') {
       if (this.mode !== 'burning') { this.mode = 'burning'; this.shown = 0.2; }
@@ -553,6 +554,7 @@ export class Scene {
 
   /** A hatchet lying in the shadows at the bottom-right corner of the clearing (partly out of view). */
   drawHatchet(c) {
+    if (!(this.props || []).includes('hatchet')) return; // appears once Improved Foraging is bought
     if (!this.hatchetImg) this.hatchetImg = brighten(this.s[HATCHET_SPRITE], HATCHET_BRIGHTNESS);
     const img = this.hatchetImg;
     if (!this.hatchetRim) this.hatchetRim = topEdges(img);

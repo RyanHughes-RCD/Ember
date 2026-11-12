@@ -24,6 +24,7 @@ function effectAt(u, lvl, data) {
     case 'rolls': return `Reward rolls +${pct(e.perLevel * lvl)}`;
     case 'rarityChance': return `${e.rarities.length > 1 ? 'Rare+' : 'Uncommon'} chance +${pct(e.perLevel * lvl)}`;
     case 'tagChance': return `Magical finds +${pct(e.perLevel * lvl)}`;
+    case 'forageFinds': return lvl ? `${e.finds.map((f) => data.byId[f.id].name).join(' and ')} in the forage patch` : '';
     default: return '';
   }
 }
@@ -40,7 +41,8 @@ export class UpgradesView {
       const r = this.game.act((s, d) => buyUpgrade(s, d, id));
       if (r.ok) {
         sfx.upgrade();
-        this.ui.toast(`${this.game.data.upgradeById[id].name} is now level ${r.level}.`);
+        const up = this.game.data.upgradeById[id];
+        this.ui.toast(up.costs.length === 1 ? `${up.name} bought.` : `${up.name} is now level ${r.level}.`);
         this.ui.bump('sparks');
       } else {
         sfx.error();
@@ -59,16 +61,16 @@ export class UpgradesView {
     const afford = cost && s.sparks >= cost.sparks && s.cores >= cost.cores;
     const costTxt = cost ? `✦ ${cost.sparks}${cost.cores ? ` <span class="c-cores">+ ◆ ${cost.cores}</span>` : ''}` : '';
     return `<div class="card up-card">
-      <img class="px-icon" src="${uiIconUrl(u.icon, ICON_PALETTES[u.group])}" alt="">
+      <img class="px-icon${u.iconSprite ? ' sprite-icon' : ''}" src="${u.iconSprite ? `assets/sprites/${u.iconSprite}.png` : uiIconUrl(u.icon, ICON_PALETTES[u.group])}" alt="">
       <div>
         <div class="up-top"><span class="name">${esc(u.name)}</span><span class="pips" title="Level ${lvl} of ${max}">${pips}</span></div>
         <p class="desc" style="margin:2px 0">${esc(u.description)}</p>
         <div class="effect">
-          <span class="now">${lvl ? esc(effectAt(u, lvl, d)) : 'Not learned'}</span>
+          <span class="now">${lvl ? esc(effectAt(u, lvl, d)) : max === 1 ? 'Not bought' : 'Not learned'}</span>
           ${cost ? `<span class="arrow"> → </span><span class="next">${esc(effectAt(u, lvl + 1, d))}</span>` : ''}
         </div>
         ${cost ? `<button class="btn ${afford ? 'btn-primary' : ''} cost-btn" data-act="upgrade" data-id="${u.id}" ${afford ? '' : 'disabled'}>
-          Level ${lvl + 1} · ${costTxt}</button>` : '<div class="maxed">MASTERED</div>'}
+          ${max === 1 ? 'Buy' : `Level ${lvl + 1}`} · ${costTxt}</button>` : `<div class="maxed">${max === 1 ? 'OWNED' : 'MASTERED'}</div>`}
       </div></div>`;
   }
 
@@ -85,6 +87,11 @@ export class UpgradesView {
         <h3 class="section-title">Ash Recovery</h3>
         <p>Find more, and finer things, in what remains.</p>
         <div class="list">${group('ash')}</div>
+      </div>
+      <div class="up-group">
+        <h3 class="section-title">Campsite Upgrades</h3>
+        <p>Make the clearing around the fire your own.</p>
+        <div class="list">${group('campsite')}</div>
       </div>`;
   }
 }

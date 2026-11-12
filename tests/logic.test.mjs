@@ -7,7 +7,7 @@ import { createNewSave, migrate, SaveStore, emptyFire } from '../js/logic/state.
 import { settle, stoke, collectAsh, remainingAt, canStokeNow, durationAt, tintAt } from '../js/logic/fire.js';
 import { generateRewards } from '../js/logic/rewards.js';
 import {
-  buyMaterial, buyUpgrade, sellAllTreasures, enduranceBonus, accrueGathering, pickUp, nextGatherIn, canForage, forage, isUnlocked,
+  buyMaterial, buyUpgrade, sellAllTreasures, enduranceBonus, accrueGathering, pickUp, nextGatherIn, canForage, forage, isUnlocked, campsiteProps,
 } from '../js/logic/economy.js';
 import { getCapacity, getThreshold, effectiveMaterial } from '../js/logic/stats.js';
 
@@ -345,6 +345,38 @@ test('the stomp also happens while the app is closed, and a second effigy does n
   const pe = settle(p, data, T0 + 10 * HOUR, seeded(5)).find((e) => e.type === 'extinguished');
   assert.equal(pe.message, null);
   assert.equal(p.pendingAsh.messageSeen, true);
+});
+
+test('Improved Foraging turns up pine logs (and rarely birch) and puts the hatchet by the fire', () => {
+  const count = (s) => {
+    const n = { pine_log: 0, birch_log: 0, total: 0 };
+    const rng = seeded(31);
+    for (let day = 0; day < 400; day++) {
+      accrueGathering(s, data, T0 + (day + 1) * 6 * HOUR, rng);
+      for (const o of [...s.gathering.spawns]) {
+        n.total++;
+        if (o.id in n) n[o.id]++;
+        pickUp(s, data, o.key);
+      }
+    }
+    return n;
+  };
+  const before = createNewSave(data, T0);
+  assert.deepEqual(campsiteProps(before, data), [], 'no hatchet before the upgrade');
+  const plain = count(before);
+  assert.equal(plain.pine_log + plain.birch_log, 0, 'no logs without the upgrade');
+
+  const s = createNewSave(data, T0);
+  s.sparks = 1000;
+  assert.equal(buyUpgrade(s, data, 'improved_foraging').ok, false, 'needs Ember Cores too');
+  s.cores = 3;
+  assert.equal(buyUpgrade(s, data, 'improved_foraging').ok, true);
+  assert.equal(s.sparks, 600); assert.equal(s.cores, 0);
+  assert.equal(buyUpgrade(s, data, 'improved_foraging').ok, false, 'bought once');
+  assert.deepEqual(campsiteProps(s, data), ['hatchet']);
+  const n = count(s);
+  assert.ok(n.pine_log / n.total > 0.08 && n.pine_log / n.total < 0.16, `pine about 12% (${n.pine_log}/${n.total})`);
+  assert.ok(n.birch_log > 0 && n.birch_log < n.pine_log / 2, `birch is rarer (${n.birch_log})`);
 });
 
 test('old basket saves become spawns', () => {

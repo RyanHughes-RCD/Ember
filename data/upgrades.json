@@ -71,5 +71,19 @@
     "icon": "book",
     "effect": { "type": "tagChance", "tag": "magic", "perLevel": 0.15 },
     "costs": [ { "sparks": 200 }, { "sparks": 440 }, { "sparks": 950, "cores": 1 }, { "sparks": 2000, "cores": 2 }, { "sparks": 4200, "cores": 4 } ]
+  },
+  {
+    "id": "improved_foraging", "group": "campsite", "name": "Improved Foraging",
+    "description": "A good hatchet: fallen logs turn up in the forage patch.",
+    "iconSprite": "hatchet_full",
+    "effect": {
+      "type": "forageFinds",
+      "finds": [
+        { "id": "pine_log", "chance": 0.12 },
+        { "id": "birch_log", "chance": 0.03 }
+      ],
+      "campsiteProp": "hatchet"
+    },
+    "costs": [ { "sparks": 400, "cores": 3 } ]
   }
 ]

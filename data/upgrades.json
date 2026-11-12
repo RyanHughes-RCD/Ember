@@ -366,6 +366,9 @@
       "w": 16
     },
     "id": "coiled_sword",
-    "name": "Coiled Sword"
+    "name": "Coiled Sword",
+    "requires": {
+      "milestone": "e12"
+    }
   }
 ]

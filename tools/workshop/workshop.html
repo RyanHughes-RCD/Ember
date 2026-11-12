@@ -548,6 +548,8 @@ function upgradeForm(o) {
     ${effectFields(o)}
     <p class="help">To show something at the campsite when this is bought, add an overlay on the Campsite tab and set it to appear after this upgrade.</p>
   </div>
+  <div class="card"><h3>When it can be bought</h3>${requiresFields(o, 'Can be bought', 'From the start')}
+    <p class="help">Until then the game shows it locked, with what's needed to unlock it.</p></div>
   <div class="card"><h3>Cost per level</h3>
     <div class="tablewrap"><table class="rows"><thead><tr><th>Level</th><th>Sparks</th><th>Ember Cores</th><th></th></tr></thead><tbody>
     ${o.costs.map((c, i) => `<tr><td class="mono">${i + 1}</td><td><input type="number" min="0" data-k="costs.${i}.sparks" data-t="int" value="${c.sparks || 0}"></td>
@@ -577,16 +579,16 @@ function groupsForm() {
     <div><button class="btn small" data-act="group-add">+ New section</button></div></div>`;
 }
 /* overlays */
-function requiresFields(o) {
+function requiresFields(o, label = 'Shows up', always = 'Always') {
   const r = o.requires || null;
   const kind = !r ? '' : r.upgrade ? 'upgrade' : r.milestone ? 'milestone' : r.discovered ? 'discovered' : r.firesCompleted !== undefined ? 'firesCompleted' : '';
   let val = '';
-  if (kind === 'upgrade') val = `<label class="f">Upgrade<select data-req="upgrade">${work.upgrades.map((u) => `<option value="${u.id}" ${r.upgrade === u.id ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}</select></label>`;
+  if (kind === 'upgrade') val = `<label class="f">Upgrade<select data-req="upgrade">${work.upgrades.filter((u) => u !== o).map((u) => `<option value="${u.id}" ${r.upgrade === u.id ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}</select></label>`;
   if (kind === 'milestone') val = `<label class="f">Milestone<select data-req="milestone">${BASE.milestones.map((m) => `<option value="${m.id}" ${r.milestone === m.id ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select></label>`;
   if (kind === 'discovered') val = `<label class="f">Item<select data-req="discovered">${[...work.items, ...work.materials].map((d) => `<option value="${d.id}" ${r.discovered === d.id ? 'selected' : ''}>${esc(d.name)}</option>`).join('')}</select></label>`;
   if (kind === 'firesCompleted') val = `<label class="f">Fires burned out<input type="number" min="0" data-req="firesCompleted" value="${r.firesCompleted}"></label>`;
-  return `<div class="grid2"><label class="f">Shows up<select data-req-kind>
-    ${[['', 'Always'], ['upgrade', 'After buying an upgrade'], ['milestone', 'After a milestone'], ['discovered', 'After finding an item'], ['firesCompleted', 'After some fires burn out']].map(([k, n]) => `<option value="${k}" ${k === kind ? 'selected' : ''}>${n}</option>`).join('')}
+  return `<div class="grid2"><label class="f">${esc(label)}<select data-req-kind>
+    ${[['', always], ['upgrade', 'After buying an upgrade'], ['milestone', 'After a milestone'], ['discovered', 'After finding an item'], ['firesCompleted', 'After some fires burn out']].map(([k, n]) => `<option value="${k}" ${k === kind ? 'selected' : ''}>${n}</option>`).join('')}
   </select></label>${val}</div>`;
 }
 function overlayForm(o) {
@@ -1062,7 +1064,12 @@ function validate() {
     if (u.effect && u.effect.type === 'rarityChance' && !(u.effect.rarities || []).length) out.push(['warn', `${u.name}: pick at least one rarity.`]);
     if (u.iconArt) checkArt(u.iconArt, `${u.name} icon`, out);
     if (u.iconSprite && !GAME.sprites[u.iconSprite]) out.push(['error', `${u.name}: the icon sprite "${u.iconSprite}" doesn't exist.`]);
+    const ur = u.requires;
+    if (ur && ur.upgrade === u.id) out.push(['error', `${u.name} can't require itself.`]);
+    if (ur && ur.milestone && !BASE.milestones.some((x) => x.id === ur.milestone)) out.push(['error', `${u.name} unlocks after an unknown milestone.`]);
+    if (ur && ur.discovered && !ids.has(ur.discovered)) out.push(['error', `${u.name} unlocks after finding "${ur.discovered}", which doesn't exist.`]);
   }
+  for (const u of work.upgrades) if (u.requires && u.requires.upgrade && !uids.has(u.requires.upgrade)) out.push(['error', `${u.name} unlocks after an upgrade that doesn't exist.`]);
   const oids = new Set();
   for (const o of work.overlays) {
     if (!o.id || !/^[a-z0-9_]+$/.test(o.id)) out.push(['error', `${o.name || 'An overlay'}: the ID must be lowercase letters, numbers and underscores.`]);
@@ -1273,7 +1280,7 @@ document.addEventListener('change', (e) => {
   if (t.matches('[data-unlock]')) { const k = t.dataset.unlock; o.unlock = { [k]: k === 'longestFire' ? Math.round((parseFloat(t.value) || 0) * 3600) : k === 'firesCompleted' ? parseInt(t.value, 10) || 0 : t.value }; afterChange({ soft: true }); return; }
   if (t.matches('[data-req-kind]')) {
     const k = t.value;
-    o.requires = !k ? null : k === 'upgrade' ? { upgrade: work.upgrades[0].id } : k === 'milestone' ? { milestone: BASE.milestones[0].id } : k === 'discovered' ? { discovered: work.items[0].id } : { firesCompleted: 1 };
+    o.requires = !k ? null : k === 'upgrade' ? { upgrade: (work.upgrades.find((u) => u !== o) || work.upgrades[0]).id } : k === 'milestone' ? { milestone: BASE.milestones[0].id } : k === 'discovered' ? { discovered: work.items[0].id } : { firesCompleted: 1 };
     if (!o.requires) delete o.requires;
     afterChange(); return;
   }

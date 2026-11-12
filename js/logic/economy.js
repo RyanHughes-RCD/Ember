@@ -137,6 +137,7 @@ export function buyUpgrade(state, data, id) {
   if (!u) return { ok: false, error: 'Unknown upgrade.' };
   const cost = nextUpgradeCost(state, data, id);
   if (!cost) return { ok: false, error: 'Already at maximum level.' };
+  if (!meetsRequirement(state, data, u.requires)) return { ok: false, error: `${requirementText(data, u.requires)} first.` };
   if (state.sparks < cost.sparks) return { ok: false, error: 'Not enough Sparks.' };
   if (state.cores < cost.cores) return { ok: false, error: 'Not enough Ember Cores.' };
   state.sparks -= cost.sparks;
@@ -195,6 +196,19 @@ export function meetsRequirement(state, data, req) {
   if (req.discovered && !state.discoveries[req.discovered] && !state.seenMaterials[req.discovered]) return false;
   if (req.firesCompleted !== undefined && state.records.firesCompleted < req.firesCompleted) return false;
   return true;
+}
+
+/** Plain words for a requirement, e.g. "Reach the Hearthkeeper milestone". */
+export function requirementText(data, req) {
+  if (!req) return '';
+  if (req.upgrade) return `Buy ${(data.upgradeById[req.upgrade] || {}).name || 'another upgrade'}`;
+  if (req.milestone) {
+    const m = data.milestones.find((x) => x.id === req.milestone);
+    return m ? `Reach the ${m.name} milestone` : 'Reach a milestone';
+  }
+  if (req.discovered) return `Find ${(data.byId[req.discovered] || {}).name || 'something'}`;
+  if (req.firesCompleted !== undefined) return `Let ${req.firesCompleted} fire${req.firesCompleted === 1 ? '' : 's'} burn out`;
+  return 'Not available yet';
 }
 
 /** Campsite overlays the player can see right now (e.g. the hatchet once Improved Foraging is bought). */

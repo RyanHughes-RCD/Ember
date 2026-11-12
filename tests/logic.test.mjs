@@ -393,7 +393,7 @@ test('the data loader rejects broken overlays and art', () => {
   bad((r) => { r.upgrades[0].group = 'mystery'; }, /unknown group/);
   const good = raw();
   good.overlays.push({ id: 'moon', layer: 'sky', x: 10, y: -90, art: { w: 2, h: 2, rows: ['ab', 'ba'], colors: { a: '#fff', b: '#ccc' } } });
-  assert.equal(buildData(good).overlays.length, 2, 'inline art overlays load');
+  assert.equal(buildData(good).overlays.length, raw().overlays.length + 1, 'inline art overlays load');
 });
 
 test('overlays can require milestones, discoveries or fires completed', () => {
@@ -409,6 +409,18 @@ test('overlays can require milestones, discoveries or fires completed', () => {
   assert.equal(req({ firesCompleted: 2 }), false);
   s.records.firesCompleted = 2;
   assert.equal(req({ firesCompleted: 2 }), true);
+});
+
+test('Coiled Sword can only be bought after the Hearthkeeper milestone', () => {
+  const s = createNewSave(data, T0);
+  s.sparks = 5000; s.cores = 20;
+  const r = buyUpgrade(s, data, 'coiled_sword');
+  assert.equal(r.ok, false);
+  assert.match(r.error, /Hearthkeeper/);
+  assert.equal(s.sparks, 5000, 'nothing spent on a refused purchase');
+  s.milestones.e12 = T0;
+  assert.equal(buyUpgrade(s, data, 'coiled_sword').ok, true);
+  assert.deepEqual(visibleOverlays(s, data).map((o) => o.id), ['coiled_sword'], 'its sword appears in the fire');
 });
 
 test('old basket saves become spawns', () => {

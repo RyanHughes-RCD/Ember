@@ -3,7 +3,7 @@
 import { loadData } from './data.js';
 import { Game } from './game.js';
 import { collectAsh } from './logic/fire.js';
-import { sellValue, isUnlocked, nextUpgradeCost } from './logic/economy.js';
+import { sellValue, isUnlocked, nextUpgradeCost, meetsRequirement } from './logic/economy.js';
 import { effectiveMaterial } from './logic/stats.js';
 import { Scene, loadSprites } from './ui/scene.js';
 import { iconUrl, uiIconUrl } from './ui/icons.js';
@@ -88,7 +88,7 @@ function renderAll() {
 
 function upgradeAffordable() {
   const s = game.state; const d = game.data;
-  return d.upgrades.some((u) => { const c = nextUpgradeCost(s, d, u.id); return c && s.sparks >= c.sparks && s.cores >= c.cores; });
+  return d.upgrades.some((u) => { const c = nextUpgradeCost(s, d, u.id); return c && meetsRequirement(s, d, u.requires) && s.sparks >= c.sparks && s.cores >= c.cores; });
 }
 
 /** A small dot on the menu button when an upgrade can be bought. */

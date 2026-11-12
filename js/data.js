@@ -34,6 +34,10 @@ export function buildData(raw) {
   for (const u of upgrades) {
     if (groups.size && !groups.has(u.group)) throw new Error(`Upgrade ${u.id} is in unknown group "${u.group}"`);
     if (u.iconArt) checkArt(u.iconArt, `Upgrade ${u.id} icon`);
+    const r = u.requires;
+    if (r && r.upgrade && !upgradeById[r.upgrade]) throw new Error(`Upgrade ${u.id} requires unknown upgrade "${r.upgrade}"`);
+    if (r && r.milestone && !milestones.some((m) => m.id === r.milestone)) throw new Error(`Upgrade ${u.id} requires unknown milestone "${r.milestone}"`);
+    if (r && r.discovered && !byId[r.discovered]) throw new Error(`Upgrade ${u.id} requires unknown item "${r.discovered}"`);
   }
   for (const d of Object.values(byId)) if (d.icon && d.icon.art) checkArt(d.icon.art, `${d.id} icon`);
   const layers = new Set(config.overlayLayers || ['sky', 'ground-back', 'ground-front', 'overlay']);

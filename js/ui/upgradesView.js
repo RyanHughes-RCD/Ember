@@ -4,7 +4,7 @@ import { $, esc, fmtClock, pct } from './util.js';
 import { uiIconUrl, artUrl } from './icons.js';
 import { sfx } from './audio.js';
 import { upgradeLevel } from '../logic/stats.js';
-import { buyUpgrade, nextUpgradeCost } from '../logic/economy.js';
+import { buyUpgrade, nextUpgradeCost, meetsRequirement, requirementText } from '../logic/economy.js';
 
 const ICON_PALETTES = {
   firekeeping: ['#1a0c06', '#6a2e10', '#c0602a', '#f0a040', '#ffe6a0'],
@@ -65,7 +65,8 @@ export class UpgradesView {
     const max = u.costs.length;
     const cost = nextUpgradeCost(s, d, u.id);
     const pips = Array.from({ length: max }, (_, i) => `<i class="${i < lvl ? 'on' : ''}"></i>`).join('');
-    const afford = cost && s.sparks >= cost.sparks && s.cores >= cost.cores;
+    const locked = !meetsRequirement(s, d, u.requires);
+    const afford = !locked && cost && s.sparks >= cost.sparks && s.cores >= cost.cores;
     const costTxt = cost ? `✦ ${cost.sparks}${cost.cores ? ` <span class="c-cores">+ ◆ ${cost.cores}</span>` : ''}` : '';
     return `<div class="card up-card">
       <img class="px-icon${u.iconSprite || u.iconArt ? ' sprite-icon' : ''}" src="${this.iconSrc(u)}" alt="">
@@ -76,6 +77,7 @@ export class UpgradesView {
           <span class="now">${lvl ? esc(effectAt(u, lvl, d)) : max === 1 ? 'Not bought' : 'Not learned'}</span>
           ${cost ? `<span class="arrow"> → </span><span class="next">${esc(effectAt(u, lvl + 1, d))}</span>` : ''}
         </div>
+        ${cost && locked ? `<div class="lock-hint">${esc(requirementText(d, u.requires))} to unlock</div>` : ''}
         ${cost ? `<button class="btn ${afford ? 'btn-primary' : ''} cost-btn" data-act="upgrade" data-id="${u.id}" ${afford ? '' : 'disabled'}>
           ${max === 1 ? 'Buy' : `Level ${lvl + 1}`} · ${costTxt}</button>` : `<div class="maxed">${max === 1 ? 'OWNED' : 'MASTERED'}</div>`}
       </div></div>`;

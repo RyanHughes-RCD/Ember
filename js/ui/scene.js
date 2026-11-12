@@ -25,7 +25,7 @@ export async function loadSprites(base = './assets/sprites/') {
 const rand = (a, b) => a + Math.random() * (b - a);
 // On average the eyes appear once per this many seconds spent looking at the fire.
 const EYES_EVERY_SECONDS = 600;
-// The hatchet lying on the ground beside the fire ('hatchet' = half size, 'hatchet_full' = full size).
+// The hatchet lying on the ground beside the fire ('hatchet' = lying flat, 'hatchet_full' = full-size upright art).
 const HATCHET_SPRITE = 'hatchet';
 
 // ---------------------------------------------------------------- fire-ring stones
@@ -147,6 +147,18 @@ function buildStones() {
   }
   // draw far stones first so nearer ones overlap them
   return out.sort((p, q) => p.dy - q.dy);
+}
+
+/** A flat-coloured copy of a sprite's shape (for shadows). */
+function silhouette(img, color) {
+  const c = document.createElement('canvas');
+  c.width = img.width; c.height = img.height;
+  const g = c.getContext('2d');
+  g.drawImage(img, 0, 0);
+  g.globalCompositeOperation = 'source-in';
+  g.fillStyle = color;
+  g.fillRect(0, 0, img.width, img.height);
+  return c;
 }
 
 /** Opaque pixels with nothing above them: the edges that face up toward the light. */
@@ -528,12 +540,15 @@ export class Scene {
   drawHatchet(c) {
     const img = this.s[HATCHET_SPRITE];
     if (!this.hatchetRim) this.hatchetRim = topEdges(img);
+    if (!this.hatchetShadow) this.hatchetShadow = silhouette(img, '#050403');
     const x = Math.round(this.w - img.width - 6);
     const y = Math.round(this.fb + 9 - img.height);
-    // contact shadow along the ground
-    c.globalAlpha = 0.45;
-    c.fillStyle = '#050403';
-    c.fillRect(x + 1, y + img.height - 1, Math.round(img.width * 0.7), 2);
+    // its shadow hugs the whole outline, just below it on the ground
+    c.globalAlpha = 0.25;
+    c.drawImage(this.hatchetShadow, x - 1, y + 1);
+    c.drawImage(this.hatchetShadow, x + 1, y + 1);
+    c.globalAlpha = 0.55;
+    c.drawImage(this.hatchetShadow, x, y + 1);
     c.globalAlpha = 1;
     c.drawImage(img, x, y);
     // the top edges catch the firelight (red while an effigy burns, fading as the fire dies)

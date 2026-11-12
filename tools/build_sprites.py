@@ -159,7 +159,7 @@ def build_forest():
 
 def build_hatchet():
     """Isolate the hatchet from its white background, rotate it 90 degrees clockwise,
-    and save it at full and half size (the half-size one is used in the scene)."""
+    and save it at full size and as it looks lying on the ground (used in the scene)."""
     b, ox, oy = 6.55, 2.1833, 1.0917  # pixel grid of assets/source/hatchet.png
     a = np.array(Image.open(SRC / "hatchet.png").convert("RGB")).astype(float)
     h, w, _ = a.shape
@@ -177,18 +177,22 @@ def build_hatchet():
     im = Image.fromarray(out, "RGBA")
     im = im.crop(im.getbbox()).transpose(Image.Transpose.ROTATE_270)  # 90 degrees clockwise
     save(np.array(im), "hatchet_full.png")
-    # half size: each 2x2 block becomes its darkest opaque pixel if at least two are opaque,
-    # which keeps the thin handle and the dark outline intact
+    # Lying on the ground: seen from this low angle a flat object is foreshortened,
+    # so halve its width and squash its height to a third (36x26 -> 18x8).
+    # Each target pixel takes the middle-brightness opaque pixel of its source block.
     A = np.array(im)
-    H2, W2 = (A.shape[0] + 1) // 2, (A.shape[1] + 1) // 2
-    half = np.zeros((H2, W2, 4), np.uint8)
-    for y in range(H2):
-        for x in range(W2):
-            blk = A[y * 2:y * 2 + 2, x * 2:x * 2 + 2].reshape(-1, 4)
+    sh, sw = A.shape[:2]
+    tw, th = 18, 8
+    flat = np.zeros((th, tw, 4), np.uint8)
+    for y in range(th):
+        y0 = int(y * sh / th); y1 = max(y0 + 1, int((y + 1) * sh / th))
+        for x in range(tw):
+            x0 = int(x * sw / tw); x1 = max(x0 + 1, int((x + 1) * sw / tw))
+            blk = A[y0:y1, x0:x1].reshape(-1, 4)
             opaque = blk[blk[:, 3] > 0]
-            if len(opaque) >= 2:
-                half[y, x] = opaque[np.argsort(opaque[:, :3].sum(1))[len(opaque) // 2]]
-    save(half, "hatchet.png")
+            if len(opaque) / len(blk) >= 0.3:
+                flat[y, x] = opaque[np.argsort(opaque[:, :3].sum(1))[len(opaque) // 2]]
+    save(flat, "hatchet.png")
 
 
 if __name__ == "__main__":

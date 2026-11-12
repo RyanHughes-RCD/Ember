@@ -17,7 +17,7 @@ function loadImage(src) {
 }
 
 export async function loadSprites(base = './assets/sprites/') {
-  const names = ['forest_night', 'flames', 'logs', 'embers', 'ashpile', 'charred'];
+  const names = ['forest_night', 'flames', 'logs', 'embers', 'ashpile', 'charred', 'hatchet', 'hatchet_full'];
   const imgs = await Promise.all(names.map((n) => loadImage(`${base}${n}.png`)));
   return Object.fromEntries(names.map((n, i) => [n, imgs[i]]));
 }
@@ -25,6 +25,8 @@ export async function loadSprites(base = './assets/sprites/') {
 const rand = (a, b) => a + Math.random() * (b - a);
 // On average the eyes appear once per this many seconds spent looking at the fire.
 const EYES_EVERY_SECONDS = 600;
+// The hatchet lying on the ground beside the fire ('hatchet' = half size, 'hatchet_full' = full size).
+const HATCHET_SPRITE = 'hatchet';
 
 // ---------------------------------------------------------------- fire-ring stones
 
@@ -145,6 +147,19 @@ function buildStones() {
   }
   // draw far stones first so nearer ones overlap them
   return out.sort((p, q) => p.dy - q.dy);
+}
+
+/** Opaque pixels with nothing above them: the edges that face up toward the light. */
+function topEdges(img) {
+  const c = document.createElement('canvas');
+  c.width = img.width; c.height = img.height;
+  const g = c.getContext('2d');
+  g.drawImage(img, 0, 0);
+  const d = g.getImageData(0, 0, img.width, img.height).data;
+  const on = (x, y) => x >= 0 && y >= 0 && x < img.width && y < img.height && d[(y * img.width + x) * 4 + 3] > 0;
+  const out = [];
+  for (let y = 0; y < img.height; y++) for (let x = 0; x < img.width; x++) if (on(x, y) && !on(x, y - 1)) out.push([x, y]);
+  return out;
 }
 
 /** A red-flame copy of the flame sheet: each pixel is remapped by brightness onto a red ramp. */
@@ -406,6 +421,7 @@ export class Scene {
     }
 
     this.drawStones(c, false);
+    this.drawHatchet(c);
 
     for (const d of this.drops) c.drawImage(d.img, Math.round(d.x), Math.round(d.y), 8, 8);
 
@@ -506,6 +522,29 @@ export class Scene {
     const dw = Math.round(FRAME_W * (0.55 + 0.45 * k));
     const dh = Math.round(FRAME_H * k);
     c.drawImage(this.tmp, Math.round(this.fx - dw / 2), ly + FRAME_H - dh + Math.round(4 * (1 - k)), dw, dh);
+  }
+
+  /** A hatchet lying in the shadows at the bottom-right corner of the clearing (partly out of view). */
+  drawHatchet(c) {
+    const img = this.s[HATCHET_SPRITE];
+    if (!this.hatchetRim) this.hatchetRim = topEdges(img);
+    const x = Math.round(this.w - img.width - 6);
+    const y = Math.round(this.fb + 9 - img.height);
+    // contact shadow along the ground
+    c.globalAlpha = 0.45;
+    c.fillStyle = '#050403';
+    c.fillRect(x + 1, y + img.height - 1, Math.round(img.width * 0.7), 2);
+    c.globalAlpha = 1;
+    c.drawImage(img, x, y);
+    // the top edges catch the firelight (red while an effigy burns, fading as the fire dies)
+    const glow = this.mode === 'burning' ? 0.45 + this.shown * 0.4 + this.flare * 0.2
+      : this.mode === 'dying' ? 0.25 * Math.max(0, 1 - this.modeT / 4.2) : 0;
+    if (glow > 0) {
+      c.fillStyle = `rgb(${[255, 150 - 100 * this.red, 70 - 30 * this.red].map(Math.round).join(',')})`;
+      c.globalAlpha = Math.min(0.18, glow * 0.15); // only a faint catch of light out here
+      for (const [px, py] of this.hatchetRim) c.fillRect(x + px, y + py, 1, 1);
+      c.globalAlpha = 1;
+    }
   }
 
   drawStones(c, back) {

@@ -157,6 +157,41 @@ def build_forest():
     save(forest, "forest_night.png")
 
 
+def build_hatchet():
+    """Isolate the hatchet from its white background, rotate it 90 degrees clockwise,
+    and save it at full and half size (the half-size one is used in the scene)."""
+    b, ox, oy = 6.55, 2.1833, 1.0917  # pixel grid of assets/source/hatchet.png
+    a = np.array(Image.open(SRC / "hatchet.png").convert("RGB")).astype(float)
+    h, w, _ = a.shape
+    nx, ny = int((w - ox) / b), int((h - oy) / b)
+    out = np.zeros((ny, nx, 4), np.uint8)
+    for j in range(ny):
+        for i in range(nx):
+            x0, x1 = int(ox + i * b + 1), int(ox + (i + 1) * b - 1)
+            y0, y1 = int(oy + j * b + 1), int(oy + (j + 1) * b - 1)
+            m = np.median(a[y0:y1 + 1, x0:x1 + 1].reshape(-1, 3), axis=0)
+            if m.sum() > 600:  # white background and pale anti-aliasing -> transparent
+                continue
+            out[j, i, :3] = m.round()
+            out[j, i, 3] = 255
+    im = Image.fromarray(out, "RGBA")
+    im = im.crop(im.getbbox()).transpose(Image.Transpose.ROTATE_270)  # 90 degrees clockwise
+    save(np.array(im), "hatchet_full.png")
+    # half size: each 2x2 block becomes its darkest opaque pixel if at least two are opaque,
+    # which keeps the thin handle and the dark outline intact
+    A = np.array(im)
+    H2, W2 = (A.shape[0] + 1) // 2, (A.shape[1] + 1) // 2
+    half = np.zeros((H2, W2, 4), np.uint8)
+    for y in range(H2):
+        for x in range(W2):
+            blk = A[y * 2:y * 2 + 2, x * 2:x * 2 + 2].reshape(-1, 4)
+            opaque = blk[blk[:, 3] > 0]
+            if len(opaque) >= 2:
+                half[y, x] = opaque[np.argsort(opaque[:, :3].sum(1))[len(opaque) // 2]]
+    save(half, "hatchet.png")
+
+
 if __name__ == "__main__":
     build_campfire()
     build_forest()
+    build_hatchet()
